@@ -1,0 +1,48 @@
+{% spaceless %}
+<style type="text/css">
+{# this does not belong here; just for testing during development... #}
+#menu ul{
+padding-left: 10px;
+margin:auto;
+}
+#menu .hidden a{
+ color: #CCC !important; {# should actually be hidden #}
+}
+#menu .active a{
+ color: red !important;
+}
+</style>
+
+{% load mptt_tags %}
+{% load feincmstools_tags %}
+{% if all_pages %}
+<div id="menu">
+  {% for page,structure in all_pages|tree_info %}
+    {% if structure.new_level %}
+      {% if page.level == 0 %} {# cannot check page.parent here #}
+        <ul>
+      {% else %}
+        {% if current_page and page.parent|is_equal_or_parent_of:current_page %}
+          <ul>
+        {% else %} {# hide non-top-level non-ancestor lists #}
+          <ul class="hidden">
+        {% endif %}
+      {% endif %}
+    {% else %}
+      </li>
+    {% endif %}
+    {% if current_page and page|is_parent_of:current_page %}
+      <li class="ancestor">
+    {% else %}
+      {% if current_page and page == current_page %}
+        <li class="active">
+      {% else %}
+        <li>
+      {% endif %}
+    {% endif %}
+    <a href="{{ page.get_absolute_url }}">{{ page.title }}</a>
+    {% for level in structure.closed_levels %}</li></ul>{% endfor %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endspaceless %}
