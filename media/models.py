@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.template.loader import render_to_string
 from easy_thumbnails.files import get_thumbnailer
-from feincmstools.media.forms import ReusableImageForm
+from feincmstools.media.forms import ReusableImageForm, OneOffImageForm
 
 MAX_CAPTION_LENGTH = 1024
 MAX_ALT_TEXT_LENGTH = 1024
@@ -94,7 +94,7 @@ class ReusableImage(ImageUseMixIn):
     feincms_item_editor_form = ReusableImageForm
         
     def get_image(self):
-        return self.image.file
+        return self.image
 
 
 class OneOffImage(ImageBase, ImageUseMixIn):
@@ -103,5 +103,7 @@ class OneOffImage(ImageBase, ImageUseMixIn):
         verbose_name = 'One-off Image'
         abstract = True
 
+    feincms_item_editor_form = OneOffImageForm
+        
     def get_image(self):
-        return self.file
+        return self
