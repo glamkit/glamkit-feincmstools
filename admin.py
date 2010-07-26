@@ -10,6 +10,8 @@ class LumpyContentAdmin(editor.ItemEditor):
     
     
 class HierarchicalLumpyContentAdmin(LumpyContentAdmin, editor.TreeEditor):
+    raw_id_fields = ('parent',)
+
     def _actions_column(self, content):
         actions = super(HierarchicalLumpyContentAdmin, self)._actions_column(
             content)
