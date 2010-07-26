@@ -24,15 +24,11 @@ class ImageBase(models.Model):
                              max_length=255)
     height = models.PositiveIntegerField(editable=False)
     width = models.PositiveIntegerField(editable=False)
-    name = models.CharField('Friendly name', max_length=255)
     alt_text = models.CharField('Alternate text', blank=True,
                                 max_length=MAX_ALT_TEXT_LENGTH,
                                 help_text= 'Description of the image content')
-    category = models.ForeignKey(ImageCategory, null=True, blank=True,
-                                 related_name=
-                                 '%(app_label)s_%(class)s_related')
     attribution = models.CharField(max_length=255, blank=True)
-
+    
     class Meta:
         abstract = True
 
@@ -81,7 +77,10 @@ class ImageUseMixIn(models.Model):
 
 class Image(ImageBase):
     """ Concrete class for storing reusable images. """
-    pass
+    name = models.CharField('Friendly name', max_length=255)
+    category = models.ForeignKey(ImageCategory, null=True, blank=True,
+                                 related_name=
+                                 '%(app_label)s_%(class)s_related')
 
 
 class ReusableImage(ImageUseMixIn):
