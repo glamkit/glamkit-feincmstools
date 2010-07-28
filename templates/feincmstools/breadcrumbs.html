@@ -1,0 +1,20 @@
+{% spaceless %}
+  <style type="text/css">
+    {# this should not be here! #}
+    ul.breadcrumbs li{
+      display: inline;
+    }
+    ul.breadcrumbs{
+      border-bottom: 1px solid #CCC;
+      margin-bottom: 10px;
+    }
+  </style>
+  {% if breadcrumbs or current_page %}
+    <ul class="breadcrumbs">
+    {% for page in breadcrumbs %}
+      <li><a href="{{ page.get_absolute_url }}">{{ page.title }}</a> &rsaquo; </li>
+    {% endfor %}
+      <li class="current">{{ current_page.title }}</li>
+    </ul>
+  {% endif %}
+{% endspaceless %}

@@ -96,5 +96,9 @@ class HierarchicalLumpyContent(LumpyContent):
             mptt.register(cls)
             super(HierarchicalLumpyContent, cls)._register()
             
-
+    def get_path(self):
+        """ Returns list of slugs from tree root to self. """
+        # TODO: cache in database for efficiency?
+        page_list = list(self.get_ancestors()) + [self]
+        return '/'.join([page.slug for page in page_list])
 
