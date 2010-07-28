@@ -40,7 +40,11 @@ margin:auto;
         <li>
       {% endif %}
     {% endif %}
-    <a href="{{ page.get_absolute_url }}">{{ page.title }}</a>
+    {% if page.get_absolute_url %}
+      <a href="{{ page.get_absolute_url }}">{{ page.title }}</a>
+    {% else %}
+      <span class="linkless">{{ page.title }}</span>
+    {% endif %}
     {% for level in structure.closed_levels %}</li></ul>{% endfor %}
   {% endfor %}
 </div>
