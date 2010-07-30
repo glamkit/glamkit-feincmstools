@@ -93,7 +93,10 @@ class HierarchicalLumpyContent(LumpyContent):
     def _register(cls):
         if not cls._meta.abstract: # concrete subclasses only
             # auto-register with mptt
-            mptt.register(cls)
+            try:
+                mptt.register(cls)
+            except mptt.AlreadyRegistered:
+                pass
             super(HierarchicalLumpyContent, cls)._register()
             
     def get_path(self):
