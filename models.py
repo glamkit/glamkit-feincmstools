@@ -29,6 +29,40 @@ class TextileContent(models.Model):
     feincms_item_editor_includes = {
         'head': [ 'feincmstools/textilecontent/init.html' ],
         }
+
+
+def get_project_path(instance, filename):
+    return "project_assets/%s/%s" % (instance.project.slug, filename)
+
+class DownloadableContent(models.Model):
+    link_text = models.CharField(max_length=255)
+    downloadable = models.FileField(upload_to=get_project_path) 
+    include_icon = models.BooleanField(default=True)
+
+    def get_file_name(self):
+        return (os.path.split(self.downloadable.file.name)[1])
+
+    def get_file_extension(self):
+        extension = (os.path.split(self.downloadable.file.name)[1]).split('.')[1].lower()
+        if extension in ['ppt','pptx','pptm','pot','potx','potm','pps','ppsx','ppsm','key']:
+            extension = 'ppt'
+        elif extension in ['pdf']:
+            extension = 'pdf'
+        else:
+            extension = 'generic'
+        return extension
+
+    class Meta:
+        abstract = True
+        verbose_name = "Downloadable File"
+        verbose_name_plural = "Downloadable Files"
+
+    # def render(self, **kwargs):
+    #     downloadable = self.downloadable
+    #     template = get_template("lumpypages/downloadable.html")
+    #     c = Context({'downloadable': {'file': self.downloadable, 'link_text': self.link_text, 'include_icon': self.include_icon, 'filename': self.get_file_name(), 'file_extension': self.get_file_extension()}})
+    #     return template.render(c)
+
     
 #------------------------------------------------------------------------------
     
@@ -50,7 +84,8 @@ class LumpyContent(Base):
     
     # auto-registered default FeinCMS regions and content types:
     default_regions = (('main', _('Main')),)
-    default_content_types = (TextileContent, ReusableImage, OneOffImage,)
+    default_content_types = (TextileContent, ReusableImage, OneOffImage,
+                             DownloadableContent)
 
     # undocumented trick:
     feincms_item_editor_includes = {
