@@ -5,7 +5,8 @@ from django.utils.translation import ugettext as _
 from feincms.models import Base, Region, Template
 from template_utils.templatetags.generic_markup import apply_markup
 from feincmstools.forms import TextileContentAdminForm
-from feincmstools.media.models import OneOffImage, ReusableImage
+from feincmstools.media.models import OneOffImage, ReusableImage, \
+    ReusableTextileContent
 import mptt
 import sys
 
@@ -85,7 +86,7 @@ class LumpyContent(Base):
     # auto-registered default FeinCMS regions and content types:
     default_regions = (('main', _('Main')),)
     default_content_types = (TextileContent, ReusableImage, OneOffImage,
-                             DownloadableContent)
+                             DownloadableContent, ReusableTextileContent)
 
     # undocumented trick:
     feincms_item_editor_includes = {
