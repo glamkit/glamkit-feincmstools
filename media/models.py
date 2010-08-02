@@ -1,21 +1,33 @@
 from django.db import models
 from django.conf import settings
+from django.utils.translation import ugettext as _
 from django.template.loader import render_to_string
 from easy_thumbnails.files import get_thumbnailer
-from feincmstools.media.forms import ReusableImageForm, OneOffImageForm
+from feincmstools.media.forms import ReusableImageForm, OneOffImageForm, \
+    ReusableTextForm
+from template_utils.templatetags.generic_markup import apply_markup
+
+#---[ General ]----------------------------------------------------------------
+
+class BaseCategory(models.Model):
+    name = models.CharField(max_length=255)
+
+    class Meta:
+        abstract = True
+        verbose_name_plural = "Categories"
+    
+    def __unicode__(self):
+        return '%s' % self.name
+
+#---[ Images ]-----------------------------------------------------------------
 
 MAX_CAPTION_LENGTH = 1024
 MAX_ALT_TEXT_LENGTH = 1024
 IMAGE_TEMPLATE = 'media/image.html'
 
-class ImageCategory(models.Model):
-    name = models.CharField(max_length=255)
-
+class ImageCategory(BaseCategory):
     class Meta:
         verbose_name_plural = "Image categories"
-    
-    def __unicode__(self):
-        return '%s' % self.name
 
 
 class ImageBase(models.Model):
@@ -106,3 +118,30 @@ class OneOffImage(ImageBase, ImageUseMixIn):
         
     def get_image(self):
         return self
+
+#---[ Text ]-------------------------------------------------------------------
+
+class TextBlock(models.Model):
+    """ A reusable block of text. """
+    name = models.CharField('Friendly name', max_length=255, help_text=
+                            'used in admin interface only')
+    content = models.TextField()
+
+    def __unicode__(self):
+        return u'%s' % self.name
+
+
+class ReusableTextileContent(models.Model):
+    text_block = models.ForeignKey(TextBlock, related_name=
+                                 '%(app_label)s_%(class)s_related')
+    
+    class Meta:
+        abstract = True
+        verbose_name = _("Reusable Text Block")
+
+    feincms_item_editor_form = ReusableTextForm
+        
+    def render(self, **kwargs):
+        # this should possibly be done via a call to smartembed/textile
+        # methods directly; just directly replacing the templatetag for now
+        return apply_markup(self.text_block.content)

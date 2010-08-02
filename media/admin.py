@@ -1,5 +1,5 @@
 from django.contrib import admin
-from feincmstools.media.models import Image, ImageCategory
+from feincmstools.media.models import Image, ImageCategory, TextBlock
 from django.template import Template, Context
 
 ADMIN_THUMBNAIL_SIZE = (100, 100)
@@ -17,3 +17,8 @@ class ImageAdmin(admin.ModelAdmin):
 
 admin.site.register(ImageCategory)
 admin.site.register(Image, ImageAdmin)
+
+class TextBlockAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(TextBlock, TextBlockAdmin)
