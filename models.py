@@ -102,7 +102,10 @@ class LumpyContent(Base):
             cls._feincms_all_regions = cls.template.regions
             # auto-register FeinCMS content types:
             for content_type in cls.default_content_types:
-                new_content_type = cls.create_content_type(content_type)
+                kwargs = {}
+                if type(content_type) in (list, tuple):
+                    content_type, kwargs['regions'] = content_type
+                new_content_type = cls.create_content_type(content_type, **kwargs)
                 # make it available in the module for convenience
                 name = '%s%s' % (cls.__name__, content_type.__name__)
                 if hasattr(sys.modules[cls.__module__], name):
