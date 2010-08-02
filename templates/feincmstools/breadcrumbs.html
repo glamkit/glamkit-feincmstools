@@ -1,14 +1,4 @@
 {% spaceless %}
-  <style type="text/css">
-    {# this should not be here! #}
-    ul.breadcrumbs li{
-      display: inline;
-    }
-    ul.breadcrumbs{
-      border-bottom: 1px solid #CCC;
-      margin-bottom: 10px;
-    }
-  </style>
   {% if breadcrumbs or current_page %}
     <ul class="breadcrumbs">
     {% for page in breadcrumbs %}
