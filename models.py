@@ -70,7 +70,7 @@ class DownloadableContent(models.Model):
 class LumpyMetaclass(models.base.ModelBase):
     """ Metaclass which simply calls _register() for each new class. """
     def __new__(cls, name, bases, attrs):
-	new_class = super(LumpyMetaclass, cls).__new__(cls, name, bases, attrs)
+        new_class = super(LumpyMetaclass, cls).__new__(cls, name, bases, attrs)
         new_class._register()
         return new_class
 
