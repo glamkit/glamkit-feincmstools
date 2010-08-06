@@ -4,11 +4,11 @@
     <a href="{{ imageuse.get_image.file.url }}">
   {% endif %}
   {# TODO: base thumbnail size on COLUMN_WIDTH variable and position choice #}
-  <img src="{% thumbnail imageuse.get_image.file 300x300 %}" alt="{{ imageuse.image.alt_text }}" />
+  <img src="{% thumbnail imageuse.get_image.file imageuse.rendersize %}" alt="{{ imageuse.image.alt_text }}" />
   {% if imageuse.link_to_original %}
     </a>
   {% endif %}
-  {% if imageuse.caption %}<br /><span class="caption">{{ imageuse.caption }}{% if imageuse.image.attribution %} <span class="attribution">({{ imageuse.image.attribution }})</span>{% endif %}</span>{% endif %}
+  {% if imageuse.caption %}<br /><span class="caption">{{ imageuse.caption }}{% if imageuse.attribution %} <span class="attribution">{{ imageuse.attribution }}</span>{% endif %}</span>{% endif %}
 </div>
 {% endspaceless %}
 

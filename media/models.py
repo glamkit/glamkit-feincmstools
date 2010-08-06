@@ -62,6 +62,7 @@ class ImageUseMixIn(models.Model):
         ('R', 'Right'),
         ('C', 'Centre'),
         ('B', 'Block'),
+        ('T', 'Thumbnail'),
         )
     
     caption = models.CharField(max_length=MAX_CAPTION_LENGTH, blank=True)
@@ -81,6 +82,21 @@ class ImageUseMixIn(models.Model):
         if settings.DEBUG:
             raise RuntimeError('ImageUseMixIn.get_image called directly.')
         return None
+    
+    def rendersize(self):
+        """
+        Returns a tuple (w, h) to which to resize the image
+        """
+        return {
+            'L': (212, 10000), #TODO: cheat!!
+            'R': (222, 10000),
+            'C': (212, 10000),
+            'B': (444, 10000),
+            'T': (202, 202),
+            
+        
+        }[self.position]
+
     
     def css_classes(self):
         """ Return space-separated list of css classes for this image. """
