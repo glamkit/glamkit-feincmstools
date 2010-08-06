@@ -8,7 +8,7 @@ from feincmstools.media.forms import ReusableImageForm, OneOffImageForm, \
 	ReusableTextForm
 from template_utils.templatetags.generic_markup import apply_markup
 
-UPLOAD_PATH = settings.get('UPLOAD_PATH', 'uploads/')
+UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
 
 #---[ General ]----------------------------------------------------------------
 
@@ -34,7 +34,7 @@ class ImageCategory(BaseCategory):
 
 
 class ImageBase(models.Model):
-	file = models.ImageField(upload_to='%simages/%Y/%m/%d/' % UPLOAD_PATH,
+	file = models.ImageField(upload_to=UPLOAD_PATH+'images/%Y/%m/%d/',
 							 height_field='height', width_field='width',
 							 max_length=255)
 	height = models.PositiveIntegerField(editable=False)
@@ -156,13 +156,8 @@ class OneOffBase(models.base.ModelBase):
 
 class ReusableBase(models.base.ModelBase):
 	def __new__(cls, name, bases, attrs):
-		try:
-			media_model = [b for b in bases if isinstance(b, models.base.ModelBase)][0]
-			bases = tuple([b for b in bases if b != media_model]) # I wish tuples had a remove() method
-		except IndexError:
-			raise IndexError('No media parent found for %s. Please make sure one is provided.' % name)
 		attrs['get_media'] = lambda self: self.media
-		attrs['media'] = models.ForeignKey(media_model, related_name='%(app_label)s_%(class)s_related')
+		attrs['media'] = models.ForeignKey(attrs['concrete_model'], related_name='%(app_label)s_%(class)s_related')
 		attrs.setdefault('Meta', ClassType('Meta', (), {})).abstract = True
 		klass = super(ReusableBase, cls).__new__(cls, name, bases, attrs)
 		return klass
