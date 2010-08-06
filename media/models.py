@@ -1,3 +1,4 @@
+from types import ClassType
 from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -6,6 +7,8 @@ from easy_thumbnails.files import get_thumbnailer
 from feincmstools.media.forms import ReusableImageForm, OneOffImageForm, \
     ReusableTextForm
 from template_utils.templatetags.generic_markup import apply_markup
+
+UPLOAD_PATH = settings.get('UPLOAD_PATH', 'uploads/')
 
 #---[ General ]----------------------------------------------------------------
 
@@ -31,7 +34,7 @@ class ImageCategory(BaseCategory):
 
 
 class ImageBase(models.Model):
-    file = models.ImageField(upload_to='uploads/images/%Y/%m/%d/',
+    file = models.ImageField(upload_to='%simages/%Y/%m/%d/' % UPLOAD_PATH,
                              height_field='height', width_field='width',
                              max_length=255)
     height = models.PositiveIntegerField(editable=False)
@@ -118,6 +121,50 @@ class OneOffImage(ImageBase, ImageUseMixIn):
         
     def get_image(self):
         return self
+
+#---[ Video ]------------------------------------------------------------------
+
+class VideoBase(models.Model):
+    file = models.FileField(upload_to='uploads/video/%Y/%m/%d/', max_length=255)
+    image = models.ImageField(upload_to='uploads/images/%Y/%m/%d/still_image/', max_length=255, blank=True)
+    
+    class Meta:
+        abstract = True
+
+class OneOffBase(models.base.ModelBase):
+    def __new__(cls, name, bases, attrs):
+        attrs['get_media'] = lambda self: self
+        attrs.setdefault('Meta', ClassType('Meta', (), {})).abstract = True
+        klass = super(OneOffBase, cls).__new__(cls, name, bases, attrs)
+        return klass
+
+class ReusableBase(models.base.ModelBase):
+    def __new__(cls, name, bases, attrs):
+        try:
+            media_model = [b for b in bases if isinstance(b, models.base.ModelBase)][0]
+            bases = tuple([b for b in bases if b != media_model]) # I wish tuples had a remove() method
+        except IndexError:
+            raise IndexError('No media parent found for %s. Please make sure one is provided.' % name)
+        attrs['get_media'] = lambda self: self.media
+        attrs['media'] = models.ForeignKey(media_model, related_name='%(app_label)s_%(class)s_related')
+        attrs.setdefault('Meta', ClassType('Meta', (), {})).abstract = True
+        klass = super(ReusableBase, cls).__new__(cls, name, bases, attrs)
+        return klass
+
+class Video(VideoBase):
+    name = models.CharField('Friendly name', max_length=255)
+    category = models.ForeignKey(ImageCategory, null=True, blank=True,
+                                 related_name=
+                                 '%(app_label)s_%(class)s_related')
+
+class OneOffVideo(VideoBase, ImageUseMixIn):
+    __metaclass__ = OneOffBase
+
+class ReusableVideo(ImageUseMixIn):
+    concrete_model = Video
+    __metaclass__ = ReusableBase
+
+
 
 #---[ Text ]-------------------------------------------------------------------
 

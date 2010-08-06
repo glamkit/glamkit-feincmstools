@@ -1,14 +1,17 @@
 """ IxC extensions to FeinCMS. May perhaps be pushed back to FeinCMS core """
 
+import mptt
+import os
+import sys
+
 from django.db import models
 from django.utils.translation import ugettext as _
-from feincms.models import Base, Region, Template
+
+from feincms.models import Base, Template
 from template_utils.templatetags.generic_markup import apply_markup
-from feincmstools.forms import TextileContentAdminForm
-from feincmstools.media.models import OneOffImage, ReusableImage, \
-    ReusableTextileContent
-import mptt
-import sys
+
+from forms import TextileContentAdminForm
+from media.models import OneOffImage, ReusableImage, ReusableTextileContent
 
 #---[ FeinCMS content types ]--------------------------------------------------
 
@@ -44,7 +47,7 @@ class DownloadableContent(models.Model):
         return (os.path.split(self.downloadable.file.name)[1])
 
     def get_file_extension(self):
-        extension = (os.path.split(self.downloadable.file.name)[1]).split('.')[1].lower()
+        extension = os.path.splitext(self.downloadable.file.name)[1][1:].lower()
         if extension in ['ppt','pptx','pptm','pot','potx','potm','pps','ppsx','ppsm','key']:
             extension = 'ppt'
         elif extension in ['pdf']:
@@ -70,7 +73,7 @@ class DownloadableContent(models.Model):
 class LumpyMetaclass(models.base.ModelBase):
     """ Metaclass which simply calls _register() for each new class. """
     def __new__(cls, name, bases, attrs):
-	new_class = super(LumpyMetaclass, cls).__new__(cls, name, bases, attrs)
+        new_class = super(LumpyMetaclass, cls).__new__(cls, name, bases, attrs)
         new_class._register()
         return new_class
 
@@ -143,4 +146,3 @@ class HierarchicalLumpyContent(LumpyContent):
         # TODO: cache in database for efficiency?
         page_list = list(self.get_ancestors()) + [self]
         return '/'.join([page.slug for page in page_list])
-
