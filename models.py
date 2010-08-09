@@ -2,11 +2,15 @@
 
 from django.db import models
 from django.utils.translation import ugettext as _
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.utils.importlib import import_module
 from feincms.models import Base, Region, Template
 from template_utils.templatetags.generic_markup import apply_markup
 from feincmstools.forms import TextileContentAdminForm
 from feincmstools.media.models import OneOffImage, ReusableImage, \
     ReusableTextileContent
+import feincmstools.settings
 import mptt
 import sys
 
@@ -64,7 +68,50 @@ class DownloadableContent(models.Model):
     #     c = Context({'downloadable': {'file': self.downloadable, 'link_text': self.link_text, 'include_icon': self.include_icon, 'filename': self.get_file_name(), 'file_extension': self.get_file_extension()}})
     #     return template.render(c)
 
+class ViewContent(models.Model):
+    view = models.CharField(max_length=255, blank=False,
+                            choices=feincmstools.settings.CONTENT_VIEW_CHOICES)
     
+    class Meta:
+        abstract = True
+    
+    @staticmethod
+    def get_view_from_path(path):
+        i = path.rfind('.')
+        module, view_name = path[:i], path[i+1:]
+        try:
+            mod = import_module(module)
+        except ImportError, e:
+            raise ImproperlyConfigured(
+                'Error importing ViewContent module %s: "%s"' %
+                (module, e))
+        try:
+            view = getattr(mod, view_name)
+        except AttributeError:
+            raise ImproperlyConfigured(
+                'Module "%s" does not define a "%s" method' % 
+                (module, view_name))
+        return view
+    
+    def render(self, **kwargs):
+        try:
+            view = self.get_view_from_path(self.view)
+        except:
+            if settings.DEBUG:
+                raise
+            return '<p>Content could not be found.</p>'
+        try:
+            response = view(kwargs.get('request'))
+        except:
+            if settings.DEBUG:
+                raise
+            return '<p>Error rendering content.</p>'
+        # extract response content if it is a HttpResponse object;
+        # otherwise let's hope it is a raw content string...
+        content = getattr(response, 'content', response)
+        return content
+        
+        
 #------------------------------------------------------------------------------
     
 class LumpyMetaclass(models.base.ModelBase):
@@ -87,6 +134,12 @@ class LumpyContent(Base):
     default_regions = (('main', _('Main')),)
     default_content_types = (TextileContent, ReusableImage, OneOffImage,
                              DownloadableContent, ReusableTextileContent)
+
+    if feincmstools.settings.CONTENT_VIEW_CHOICES:
+        default_content_types += (ViewContent,)
+        # (only add if views registered)
+        # Warning: this means syncdb won't add new tables until
+        # a view is registered in settings
 
     # undocumented trick:
     feincms_item_editor_includes = {
