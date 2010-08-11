@@ -5,10 +5,10 @@ from django.db import models
 from django.utils.translation import ugettext as _
 
 from feincms.models import Base, Template
-from . import content
+from django.core.exceptions import ImproperlyConfigured
+from forms import FormWithRawIDFields
 
-__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'OneOffBase', 'ReusableBase']
-
+__all__ = ['LumpyContent', 'LumpyContentBase', 'HierarchicalLumpyContent', 'OneOffBase', 'ReusableBase']
 
 # --- Lumpy models ------------------------------------------------------------
 
@@ -28,9 +28,9 @@ class LumpyContent(Base):
 	class Meta:
 		abstract = True
 	
-	# auto-registered default FeinCMS regions and content types:
+	# Auto-register default regions and all available feincmstools content types
 	default_regions = (('main', _('Main')),)
-	default_content_types = [getattr(content, contype) for contype in content.__all__]
+	default_content_types = ()
 
 	# undocumented trick:
 	feincms_item_editor_includes = {
@@ -57,8 +57,7 @@ class LumpyContent(Base):
 					pass # don't overwrite anything though...
 				else:
 					setattr(sys.modules[cls.__module__], name,
-							new_content_type)
-						
+							new_content_type)		
 
 				
 class HierarchicalLumpyContent(LumpyContent):
@@ -91,22 +90,82 @@ class HierarchicalLumpyContent(LumpyContent):
 
 # --- Content type models -----------------------------------------------------
 
+# Helper function to check all base class for an attribute
+def get_base_attribute(bases, value, default=None):
+	for base in bases:
+		if hasattr(base, value):
+			return getattr(base, value)
+	return default
+
 class OneOffBase(models.base.ModelBase):
 	def __new__(cls, name, bases, attrs):
-		attrs['get_media'] = lambda self: self
-		attrs.setdefault('Meta', types.ClassType('Meta', (), {})).abstract = True
+		# Since FeinCMS does a manual call to the content type metaclass after
+		# altering the Meta and attributes, we don't need to reinitialise the
+		# attributes if one of the bases is already OneOffBase metaclassed,
+		# unless that base is one of the inheritable convenience classes.
+		if not [base for base in bases
+				if getattr(base, '__metaclass__', None) == cls
+				and getattr(base, '__module__', None) != 'feincmstools.models']:
+			# Add a get_content() method that returns the parent class instance
+			attrs['get_content'] = lambda self: self
+			# Generate an editor form based on the provided form_base
+			form_base = attrs.get('form_base', get_base_attribute(bases, 'form_base'))
+			# For one-off, we simply use an instance of the form_base
+			if form_base and 'feincms_item_editor_form' not in attrs:
+				attrs['feincms_item_editor_form'] = form_base
+			# Make the content type abstract
+			attrs.setdefault('Meta', types.ClassType('Meta', (), {})).abstract = True
 		klass = super(OneOffBase, cls).__new__(cls, name, bases, attrs)
 		return klass
 
 class ReusableBase(models.base.ModelBase):
 	def __new__(cls, name, bases, attrs):
-		attrs['get_media'] = lambda self: self.media
-		concrete_model = attrs.get('concrete_model', Video)
-		app_label = '_'.join([pckg for pckg in attrs['__module__'].split('.') if pckg != 'models'])
-		attrs['media'] = models.ForeignKey(concrete_model,
-										   related_name='%s_%s_related' %
-											   (app_label, concrete_model.__name__.lower()))
-		attrs.setdefault('Meta', types.ClassType('Meta', (), {})).abstract = True
+		# If we're initialising the "Reusable" and "OneOff" classes that will be
+		# inherited from, do nothing.
+		if attrs['__module__'] == 'feincmstools.models':
+			return super(ReusableBase, cls).__new__(cls, name, bases, attrs)
+		# Since FeinCMS does a manual call to the content type metaclass after
+		# altering the Meta and attributes, we don't need to reinitialise the
+		# attributes if one of the bases is already ReusableBase metaclassed,
+		# unless that base is one of the inheritable convenience classes.
+		if not [base for base in bases
+				if getattr(base, '__metaclass__', None) == cls
+				and getattr(base, '__module__', None) != 'feincmstools.models']:
+			# A concrete model is required to have a foreign key relationship to
+			concrete_model = attrs.get('concrete_model', get_base_attribute(bases, 'concrete_model'))
+			if not concrete_model:
+				raise ImproperlyConfigured('No concrete model defined for %s.' % name)
+			# Determine the name to be used for the field that refers to the
+			# concrete model, defined by the content_field_name attribute
+			content_field_name = attrs.get('content_field_name',
+										   getattr(concrete_model, 'content_field_name',
+										   get_base_attribute(bases, 'content_field_name', '_content')))
+			# Create a get_content() method that returns the conrete model
+			attrs['get_content'] = lambda self: getattr(self, content_field_name)
+			# Generate an editor form based on the provided form_base, looking
+			# for it in the concrete model as well
+			form_base = getattr(concrete_model, 'form_base', get_base_attribute(bases, 'form_base'))
+			# Use an instance of the form_base initialised with FormWithRawIDFields
+			# added to its superclasses, and content_field_name added to its
+			# raw ID fields
+			if form_base and 'feincms_item_editor_form' not in attrs:
+				reusable_form_base = type('Reusable%s' % form_base.__name__,
+													  (FormWithRawIDFields, form_base,),
+													  {'__module__': form_base.__module__, 
+													   'raw_id_fields': getattr(form_base, 'raw_id_fields', []) + [content_field_name,],
+													   'content_field_name': content_field_name})
+				attrs['feincms_item_editor_form'] = reusable_form_base
+			# Generate a Django-like app_label (will be the same as the actual
+			# Djago one for most cases)
+			app_label = '_'.join([pckg for pckg in attrs['__module__'].split('.') if pckg != 'models'])
+			# Add a foreign key to the concrete model
+			attrs[content_field_name] = models.ForeignKey(concrete_model,
+														  related_name='%s_%s_related' %
+														  (app_label, concrete_model.__name__.lower()))
+			# Make the content type abstract
+			attrs.setdefault('Meta', types.ClassType('Meta', (), {})).abstract = True
+		# Create and return the class
 		klass = super(ReusableBase, cls).__new__(cls, name, bases, attrs)
 		return klass
-
+		
+			

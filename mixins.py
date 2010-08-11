@@ -11,15 +11,10 @@ class FriendlyNamed(models.Model):
 	def __unicode__(self):
 		return self.name
 
-# TODO: At some point, add functionality for model-specific categories
-class Categorised(models.Model):
-	category = models.ForeignKey('Category',
-								 related_name='%(app_label)s_%(class)s_related',
-								 null=True, blank=True)
-
 
 MAX_CAPTION_LENGTH = 1024
-IMAGE_TEMPLATE = 'media/image.html'
+IMAGE_TEMPLATE = 'feincmstools/media/image.html'
+
 
 class ImageUseMixIn(models.Model):
 	IMAGE_POSITIONS = (
@@ -41,12 +36,6 @@ class ImageUseMixIn(models.Model):
 	def render(self, **kwargs):
 		""" Called by FeinCMS """
 		return render_to_string(IMAGE_TEMPLATE, dict(imageuse=self))
-
-	def get_image(self):
-		""" Should be overridden by subclass -- return the ImageField. """
-		if settings.DEBUG:
-			raise RuntimeError('ImageUseMixIn.get_image called directly.')
-		return None
 	
 	def rendersize(self):
 		"""
@@ -58,15 +47,13 @@ class ImageUseMixIn(models.Model):
 			'C': (212, 10000),
 			'B': (444, 10000),
 			'T': (202, 202),
-			
-		
 		}[self.position]
 
 	
 	def css_classes(self):
 		""" Return space-separated list of css classes for this image. """
 		css = []
-		position = dict(ImageUseMixIn.IMAGE_POSITIONS).get(self.position, '')
+		position = dict(self.IMAGE_POSITIONS).get(self.position, '')
 		css.append(position.lower())
 		return ' '.join(css)
 
