@@ -25,6 +25,14 @@ class OneOff(object):
 	class Meta:
 		abstract = True
 
+class Content(object):
+	render_template = None
+	
+	def render(self, **kwargs):
+		if not self.render_template:
+			raise NotImplementedError('No template defined for rendering %s content.' % self.__class__.__name__)
+		return render_to_string(self.render_template, dict(content=self, MEDIA_URL=settings.MEDIA_URL))		
+
 MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
@@ -50,7 +58,7 @@ class TextContent(models.Model):
 		'head': [ 'feincmstools/textilecontent/init.html' ],
 		}
 
-class AbstractFile(models.Model):
+class AbstractFile(Content, models.Model):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
 	
 	with_extension = False
@@ -73,14 +81,13 @@ class DownloadableContent(AbstractFile):
 	
 	content_field_name = 'file'
 	with_extension = True
+	render_template = 'feincmstools/content/file.html'
 	
 	class Meta:
 		abstract = True
 		verbose_name = "Downloadable File"
 		verbose_name_plural = "Downloadable Files"
 
-	def render(self, **kwargs):
-		return render_to_string('feincmstools/content/file.html', dict(file=self))
 
 # --- Media models ------------------------------------------------------------
 
@@ -97,12 +104,10 @@ class ImageContent(AbstractFile):
 	
 	form_base = ImageForm
 	content_field_name = 'image'
+	render_template = 'feincmstools/content/image.html'
 
 	class Meta:
 		abstract = True
-	
-	def render(self, **kwargs):
-		return render_to_string('feincmstools/content/image.html', dict(image=self))
 	
 	def get_thumbnail(self, **kwargs):
 		options = dict(size=(100, 100), crop=True)
@@ -117,8 +122,14 @@ class VideoContent(AbstractFile):
 	
 	class Meta:
 		abstract = True
+	
+	def width(self):
+		return 512
+	
+	def height(self):
+		return 384
 
-class AudioContent(models.Model):
+class AudioContent(AbstractFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'audio/%Y/%m/%d/', max_length=255)
 	
 	content_field_name = 'audio'
