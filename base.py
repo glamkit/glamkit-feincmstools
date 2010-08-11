@@ -13,6 +13,19 @@ import settings as feincmstools_settings
 
 __all__ = ['LumpyContent', 'LumpyContentBase', 'HierarchicalLumpyContent', 'OneOffBase', 'ReusableBase']
 
+def default_types():
+	modules = getattr(settings, 'DEFAULT_CONTENT_TYPES', [])
+	declared_types = ()
+	for module in modules:
+		try:
+			mdl, att = module.rsplit('.', 1)
+			__import__(mdl)
+			declared_types += tuple(getattr(sys.modules[mdl], att))
+		except (ValueError, AttributeError, ImportError):
+			raise ImproperlyConfigured('The list %s in DEFAULT_CONTENT_TYPES cannot be imported.' % module)
+	return declared_types
+
+
 class ViewContent(models.Model):
 	view = models.CharField(max_length=255, blank=False,
 							choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
@@ -76,7 +89,7 @@ class LumpyContent(Base):
 	
 	# Auto-register default regions and all available feincmstools content types
 	default_regions = (('main', _('Main')),)
-	default_content_types = ()
+	default_content_types = (default_types,)
 	
 	if feincmstools_settings.CONTENT_VIEW_CHOICES:
 		default_content_types += (ViewContent,)
@@ -97,6 +110,9 @@ class LumpyContent(Base):
 			# -- produces odd error, do manually:
 			cls.template = Template('','',cls.default_regions)
 			cls._feincms_all_regions = cls.template.regions
+			# Expand any functions in the tuple into tuple items (assuming calling
+			# them returns a tuple)
+			cls.default_content_types = reduce(lambda x, y: x + (y() if type(y) is types.FunctionType else (y,)), cls.default_content_types, ())
 			# auto-register FeinCMS content types:
 			for content_type in cls.default_content_types:
 				kwargs = {}
@@ -227,5 +243,3 @@ class ReusableBase(models.base.ModelBase):
 		# Create and return the class
 		klass = super(ReusableBase, cls).__new__(cls, name, bases, attrs)
 		return klass
-		
-			
