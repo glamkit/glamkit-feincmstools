@@ -64,8 +64,8 @@ class AbstractFile(models.Model):
 	def get_title(self):
 		if self.title:
 			return self.title
-		if hasattr(self, file):
-			return self.file.name if self.with_extension else os.path.splitext(self.file.name)[1]
+		if hasattr(self, 'file'):
+			return os.path.split(self.file.name)[1] if self.with_extension else os.path.splitext(self.file.name)[0]
 		return None
 	
 class DownloadableContent(AbstractFile):
