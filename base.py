@@ -220,13 +220,8 @@ class ReusableBase(models.base.ModelBase):
 											   'raw_id_fields': [content_field_name,],
 											   'content_field_name': content_field_name})
 				attrs['feincms_item_editor_form'] = reusable_form_base
-			# Generate a Django-like app_label (will be the same as the actual
-			# Djago one for most cases)
-			app_label = '_'.join([pckg for pckg in attrs['__module__'].split('.') if pckg != 'models'])
 			# Add a foreign key to the concrete model
-			attrs[content_field_name] = models.ForeignKey(concrete_model,
-														  related_name='%s_%s_related' %
-														  (app_label, concrete_model.__name__.lower()))
+			attrs[content_field_name] = models.ForeignKey(concrete_model, related_name='%(app_label)s_%(class)s_related')
 			# Make the content type abstract
 			attrs.setdefault('Meta', types.ClassType('Meta', (), {})).abstract = True
 		# Create and return the class
