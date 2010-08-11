@@ -13,7 +13,7 @@ class FriendlyNamed(models.Model):
 
 
 MAX_CAPTION_LENGTH = 1024
-IMAGE_TEMPLATE = 'feincmstools/media/image.html'
+IMAGE_TEMPLATE = 'feincmstools/content/imagemixin.html'
 
 
 class ImageUseMixIn(models.Model):
@@ -35,7 +35,7 @@ class ImageUseMixIn(models.Model):
 
 	def render(self, **kwargs):
 		""" Called by FeinCMS """
-		return render_to_string(IMAGE_TEMPLATE, dict(imageuse=self))
+		return render_to_string(IMAGE_TEMPLATE, dict(image=self))
 	
 	def rendersize(self):
 		"""
