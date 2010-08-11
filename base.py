@@ -1,6 +1,4 @@
 import mptt, sys, types
-
-from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
 
@@ -142,18 +140,31 @@ class ReusableBase(models.base.ModelBase):
 										   get_base_attribute(bases, 'content_field_name', '_content')))
 			# Create a get_content() method that returns the conrete model
 			attrs['get_content'] = lambda self: getattr(self, content_field_name)
+			# If a render() method is not being inherited, add one that calls
+			# the concrete model's render()
+			if not attrs.get('render', get_base_attribute(bases, 'render', None)) and getattr(concrete_model, 'render', None):
+				attrs['render'] = lambda self, *args, **kwargs: self.get_content().render(*args, **kwargs)
 			# Generate an editor form based on the provided form_base, looking
 			# for it in the concrete model as well
 			form_base = getattr(concrete_model, 'form_base', get_base_attribute(bases, 'form_base'))
 			# Use an instance of the form_base initialised with FormWithRawIDFields
 			# added to its superclasses, and content_field_name added to its
 			# raw ID fields
-			if form_base and 'feincms_item_editor_form' not in attrs:
-				reusable_form_base = type('Reusable%s' % form_base.__name__,
-													  (FormWithRawIDFields, form_base,),
-													  {'__module__': form_base.__module__, 
-													   'raw_id_fields': getattr(form_base, 'raw_id_fields', []) + [content_field_name,],
-													   'content_field_name': content_field_name})
+			if 'feincms_item_editor_form' not in attrs:
+				if form_base:
+					reusable_form_base = type('Reusable%s' % form_base.__name__,
+											  (FormWithRawIDFields, form_base,),
+											  {'__module__': form_base.__module__, 
+											   'raw_id_fields': getattr(form_base, 'raw_id_fields', []) + [content_field_name,],
+											   'content_field_name': content_field_name})
+				# If no form_base was specified, create a new class subclassing
+				# FormWithRawIDFields
+				else:
+					reusable_form_base = type('Reusable%sForm' % concrete_model.__name__,
+											  (FormWithRawIDFields,),
+											  {'__module__': 'feincmstools.forms', 
+											   'raw_id_fields': [content_field_name,],
+											   'content_field_name': content_field_name})
 				attrs['feincms_item_editor_form'] = reusable_form_base
 			# Generate a Django-like app_label (will be the same as the actual
 			# Djago one for most cases)
