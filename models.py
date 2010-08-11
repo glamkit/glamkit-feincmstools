@@ -4,11 +4,12 @@ import os
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
+from django.template.loader import render_to_string
+
 from easy_thumbnails.files import get_thumbnailer
 
 from base import *
 from forms import TextileContentAdminForm, ImageForm
-from django.template.loader import render_to_string
 
 __all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
 
@@ -124,3 +125,4 @@ class AudioContent(models.Model):
 	
 	class Meta:
 		abstract = True
+
