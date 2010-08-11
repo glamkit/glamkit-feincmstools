@@ -1,10 +1,10 @@
 {% spaceless %}{% load thumbnail %}
 <div class="image {{ image.css_classes }}">
   {% if image.link_to_original %}
-    <a href="{{ image.file.url }}">
+    <a href="{{ image.image.file.url }}">
   {% endif %}
   {# TODO: base thumbnail size on COLUMN_WIDTH variable and position choice #}
-  <img src="{% thumbnail image.file image.rendersize %}" alt="{{ image.alt_text }}" />
+  <img src="{% thumbnail image.image.file image.rendersize %}" alt="{{ image.image.alt_text }}" />
   {% if image.link_to_original %}
     </a>
   {% endif %}
