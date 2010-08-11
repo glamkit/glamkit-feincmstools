@@ -13,8 +13,6 @@ class FriendlyNamed(models.Model):
 
 
 MAX_CAPTION_LENGTH = 1024
-IMAGE_TEMPLATE = 'feincmstools/content/imagemixin.html'
-
 
 class ImageUseMixIn(models.Model):
 	IMAGE_POSITIONS = (
@@ -28,14 +26,12 @@ class ImageUseMixIn(models.Model):
 	caption = models.CharField(max_length=MAX_CAPTION_LENGTH, blank=True)
 	link_to_original = models.BooleanField(
 		default=False, help_text='Allow users to download original file?')
-	position = models.CharField(max_length=1, choices=IMAGE_POSITIONS)
+	position = models.CharField(max_length=1, choices=IMAGE_POSITIONS, default='B')
+	
+	render_template = 'feincmstools/content/imagemixin.html'
 	
 	class Meta:
 		abstract = True
-
-	def render(self, **kwargs):
-		""" Called by FeinCMS """
-		return render_to_string(IMAGE_TEMPLATE, dict(image=self))
 	
 	def rendersize(self):
 		"""
@@ -48,7 +44,6 @@ class ImageUseMixIn(models.Model):
 			'B': (444, 10000),
 			'T': (202, 202),
 		}[self.position]
-
 	
 	def css_classes(self):
 		""" Return space-separated list of css classes for this image. """
