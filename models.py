@@ -36,11 +36,16 @@ class Content(object):
 MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
-TEXT_FORMATTER = getattr(settings, 'TEXT_FORMATTER', lambda self, content: content)
+
+try:
+	from template_utils.markup import formatter as apply_markup
+	TEXT_FORMATTER = staticmethod(apply_markup)
+except ImportError:
+	TEXT_FORMATTER = staticmethod(lambda content: content)
 
 class TextContent(models.Model):
 	content = models.TextField()
-
+	
 	formatter = TEXT_FORMATTER
 	content_field_name = 'text_block'
 	
@@ -100,7 +105,6 @@ class ImageContent(AbstractFile):
 	alt_text = models.CharField('Alternate text', blank=True,
 								max_length=MAX_ALT_TEXT_LENGTH,
 								help_text= 'Description of the image content')
-#	attribution = models.CharField(max_length=255, blank=True)
 	
 	form_base = ImageForm
 	content_field_name = 'image'
