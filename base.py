@@ -87,9 +87,14 @@ class LumpyContent(Base):
     class Meta:
         abstract = True
 
+
+    # Public API
+    default_content_types = (default_types,) #FIXME: Should rename to `allowed_content_types` or `allowed_content_types` or `content_types` or `content_type_specs`, as they're not "default".
+    template_specs = None #FIXME: Maybe rename to `available_templates`
+    regions = None
+
     # Auto-register default regions and all available feincmstools content types
-    default_regions = (('main', _('Main')),)
-    default_content_types = (default_types,)
+    DEFAULT_REGIONS = (('main', _('Main')),)
 
     if feincmstools_settings.CONTENT_VIEW_CHOICES:
         default_content_types += (ViewContent,)
@@ -105,11 +110,19 @@ class LumpyContent(Base):
     @classmethod
     def _register(cls):
         if not cls._meta.abstract: # concrete subclasses only
-            # auto-register FeinCMS regions
-            # cls.register_regions(cls.default_regions)
-            # -- produces odd error, do manually:
-            cls.template = Template('','',cls.default_regions)
-            cls._feincms_all_regions = cls.template.regions
+            if cls.template_specs:
+                if (cls.regions):
+                    import warnings
+                    warnings.warn('In `%s`: `regions` is ignored as `template_specs` takes precedence.' % cls.__name__, RuntimeWarning)
+                cls.register_templates(*cls.template_specs)
+            else:
+                regions = cls.regions if cls.regions else cls.DEFAULT_REGIONS
+                # auto-register FeinCMS regions
+                # cls.register_regions(regions)
+                # -- produces odd error, do manually:
+                cls.template = Template('', '', regions)
+                cls._feincms_all_regions = cls.template.regions
+
             # Expand any functions in the tuple into tuple items (assuming calling
             # them returns a tuple)
             cls.default_content_types = reduce(lambda x, y: x + (y() if type(y) is types.FunctionType else (y,)), cls.default_content_types, ())
