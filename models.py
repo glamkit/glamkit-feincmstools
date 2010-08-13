@@ -15,23 +15,23 @@ __all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'Te
 
 class Reusable(object):
 	__metaclass__ = ReusableBase
-	
+
 	class Meta:
 		abstract = True
 
 class OneOff(object):
 	__metaclass__ = OneOffBase
-	
+
 	class Meta:
 		abstract = True
 
 class Content(object):
 	render_template = None
-	
+
 	def render(self, **kwargs):
 		if not self.render_template:
 			raise NotImplementedError('No template defined for rendering %s content.' % self.__class__.__name__)
-		return render_to_string(self.render_template, dict(content=self, MEDIA_URL=settings.MEDIA_URL))		
+		return render_to_string(self.render_template, dict(content=self, MEDIA_URL=settings.MEDIA_URL))
 
 MAX_ALT_TEXT_LENGTH = 1024
 
@@ -45,49 +45,50 @@ except ImportError:
 
 class TextContent(models.Model):
 	content = models.TextField()
-	
+
 	formatter = TEXT_FORMATTER
 	content_field_name = 'text_block'
-	
+
 	class Meta:
 		abstract = True
 		verbose_name = _("Text Block")
 
 	def render(self, **kwargs):
-		return self.formatter(self.content)
+		true_self = self.get_content()
+		return true_self.formatter(true_self.content)
 
 	form = TextileContentAdminForm
 	feincms_item_editor_form = TextileContentAdminForm
-	
+
 	feincms_item_editor_includes = {
 		'head': [ 'feincmstools/textilecontent/init.html' ],
 		}
 
 class AbstractFile(Content, models.Model):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
-	
+
 	with_extension = False
-	
+
 	class Meta:
 		abstract = True
-	
+
 	def __unicode__(self):
 		return self.get_title()
-	
+
 	def get_title(self):
 		if self.title:
 			return self.title
 		if hasattr(self, 'file'):
 			return os.path.split(self.file.name)[1] if self.with_extension else os.path.splitext(self.file.name)[0]
 		return None
-	
+
 class DownloadableContent(AbstractFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'file/%Y/%m/%d/')
-	
+
 	content_field_name = 'file'
 	with_extension = True
 	render_template = 'feincmstools/content/file.html'
-	
+
 	class Meta:
 		abstract = True
 		verbose_name = "Downloadable File"
@@ -105,14 +106,14 @@ class ImageContent(AbstractFile):
 	alt_text = models.CharField('Alternate text', blank=True,
 								max_length=MAX_ALT_TEXT_LENGTH,
 								help_text= 'Description of the image content')
-	
+
 	form_base = ImageForm
 	content_field_name = 'image'
 	render_template = 'feincmstools/content/image.html'
 
 	class Meta:
 		abstract = True
-	
+
 	def get_thumbnail(self, **kwargs):
 		options = dict(size=(100, 100), crop=True)
 		options.update(kwargs)
@@ -121,23 +122,23 @@ class ImageContent(AbstractFile):
 class VideoContent(AbstractFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'video/%Y/%m/%d/', max_length=255)
 	image = models.ImageField(upload_to=UPLOAD_PATH+'video/%Y/%m/%d/still_image/', max_length=255, blank=True)
-	
+
 	content_field_name = 'video'
-	
+
 	class Meta:
 		abstract = True
-	
+
 	def width(self):
 		return 512
-	
+
 	def height(self):
 		return 384
 
 class AudioContent(AbstractFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'audio/%Y/%m/%d/', max_length=255)
-	
+
 	content_field_name = 'audio'
-	
+
 	class Meta:
 		abstract = True
 

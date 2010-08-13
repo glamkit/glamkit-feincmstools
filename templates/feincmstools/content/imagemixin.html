@@ -1,13 +1,17 @@
 {% spaceless %}{% load thumbnail %}
 <div class="image {{ content.css_classes }}">
-  {% if content.link_to_original %}
-    <a href="{{ content.file.url }}">
+  {% if content.link_url %}
+    <a href="{{ content.link_url }}">
+  {% else %}
+    {% if content.link_to_original %}
+      <a href="{{ content.get_content.file.url }}">
+    {% endif %}
   {% endif %}
   {# TODO: base thumbnail size on COLUMN_WIDTH variable and position choice #}
-  <img src="{% thumbnail content.file content.rendersize %}" alt="{{ content.alt_text }}" />
-  {% if content.link_to_original %}
+  <img src="{% thumbnail content.get_content.file content.rendersize %}" alt="{{ content.get_content.alt_text }}" />
+  {% if content.link_to_original or content.link_url %}
     </a>
   {% endif %}
-  {% if content.caption %}<br /><span class="caption">{{ content.caption }}{% if content.attribution %} <span class="attribution">{{ content.attribution }}</span>{% endif %}</span>{% endif %}
+  {% if content.caption %}<br /><span class="caption">{{ content.caption }}{% if content.get_content.attribution %} <span class="attribution">{{ content.get_content.attribution }}</span>{% endif %}</span>{% endif %}
 </div>
 {% endspaceless %}
