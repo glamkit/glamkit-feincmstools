@@ -235,9 +235,9 @@ class ReusableBase(models.base.ModelBase):
             # the concrete model's render() method with the current class instance
             # as the parent instance.
             if not attrs.get('render', get_base_attribute(bases, 'render', None)) and getattr(concrete_model, 'render', None):
-	            # Essentially equivalent to saying klass.render = klass.get_content().render
-	            # but with trickery to get around method binding and the fact that we
-	            # don't have an instance or a class at this point yet.
+                # Essentially equivalent to saying klass.render = klass.get_content().render
+                # but with trickery to get around method binding and the fact that we
+                # don't have an instance or a class at this point yet.
                 attrs['render'] = lambda self, *args, **kwargs: self.get_content().__class__.render.__get__(self)(*args, **kwargs)
             # Generate an editor form based on the provided form_base, looking
             # for it in the concrete model as well
