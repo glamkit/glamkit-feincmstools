@@ -29,9 +29,10 @@ class Content(object):
 	render_template = None
 
 	def render(self, **kwargs):
-		if not self.render_template:
+		template = getattr(self, 'render_template', getattr(self.get_content(), 'render_template', None) if hasattr(self, 'get_content') else None)
+		if not template:
 			raise NotImplementedError('No template defined for rendering %s content.' % self.__class__.__name__)
-		return render_to_string(self.render_template, dict(content=self, MEDIA_URL=settings.MEDIA_URL))
+		return render_to_string(template, dict(content=self, MEDIA_URL=settings.MEDIA_URL))
 
 MAX_ALT_TEXT_LENGTH = 1024
 
