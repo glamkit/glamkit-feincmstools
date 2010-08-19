@@ -20,17 +20,22 @@ def default_types():
         try:
             mdl, att = module.rsplit('.', 1)
             __import__(mdl)
-            found_type = getattr(sys.modules[mdl], att)
-            # Check if the object referred to in the settings is a content type
-            # or a list/tuple of content types, keeping in mind that a
-            # content type can be defined as a (type, (region1, ...)) tuple.
-            if type(found_type) in [list, tuple] and not(
-                    len(found_type) == 2 and type(found_type[1]) in [tuple, list]):
-                declared_types += tuple(found_type)
-            else:
-                declared_types += (found_type,)
-        except (ValueError, AttributeError, ImportError):
+        except ImportError:
             raise ImproperlyConfigured('The declaration "%s" in DEFAULT_CONTENT_TYPES cannot be imported.' % module)
+        
+        try:
+            found_type = getattr(sys.modules[mdl], att)
+        except AttributeError:
+            raise ImproperlyConfigured('The declaration "%s" in DEFAULT_CONTENT_TYPES cannot be imported.' % module)
+        
+        # Check if the object referred to in the settings is a content type
+        # or a list/tuple of content types, keeping in mind that a
+        # content type can be defined as a (type, (region1, ...)) tuple.
+        if type(found_type) in [list, tuple] and not(
+                len(found_type) == 2 and type(found_type[1]) in [tuple, list]):
+            declared_types += tuple(found_type)
+        else:
+            declared_types += (found_type,)
     return declared_types
 
 
