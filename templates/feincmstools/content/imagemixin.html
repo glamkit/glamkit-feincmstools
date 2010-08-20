@@ -1,22 +1,11 @@
-{% spaceless %}{% load thumbnail %}
-
-
-
-
-        
-        
-        
-<div class="image {{ content.get_position_display|lower }}
-   " style="
+{% spaceless %}        
+<div class="image {{ content.get_position_display|lower }} {% if content.wrappable and not content.position %}left{% endif %}" style="
             {% if content.expand %}
                 width:{{ content.expand }};
             {% else  %}
-                    {% if content.width %}
+                {% if content.width %}
                     width:{{ content.width }}px;
-                    {% endif %}
-                    {% if content.height %}
-                    height:{{ content.height }}px;
-                    {% endif %}
+                {% endif %}
             {% endif %}
    ">
     
@@ -27,9 +16,20 @@
       <a href="{{ content.get_content.file.url }}">
     {% endif %}
   {% endif %}
-  {# TODO: base thumbnail size on COLUMN_WIDTH variable and position choice #}
-    {% comment %}<img src="{% thumbnail content.get_content.file %}" style="width:{{ content.expand }}" alt="{{ content.get_content.alt_text }}" /> {% endcomment %}
-    <img src="{{ content.get_content.file.url }}" style="width:100%; height:100%" alt="{{ content.get_content.alt_text }}" />
+    <img src="{{ content.get_content.file.url }}" style="
+    
+            {% if content.expand %}
+                width:100%;
+            {% else  %}
+                {% if content.width %}
+                    width:{{ content.width }}px;
+                {% endif %}
+                {% if content.height %}
+                    height:{{ content.height }}px;
+                {% endif %}
+            {% endif %}
+    
+    " alt="{{ content.get_content.alt_text }}" />
   {% if content.link_to_original or content.link_url %}
     </a>
   {% endif %}
