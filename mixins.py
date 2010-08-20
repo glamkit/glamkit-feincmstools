@@ -31,6 +31,7 @@ class ImageUseMixIn(models.Model):
     caption = models.CharField(max_length=MAX_CAPTION_LENGTH, blank=True)
     link_to_original = models.BooleanField(
         default=False, help_text='Allow users to download original file?')
+    link_url = models.CharField(max_length=255, blank=True, help_text='Turns the image into a link to the given URL. Will override "Link to original" if provided')
     position = models.CharField(max_length=1, choices=IMAGE_POSITIONS, blank=True)
     wrappable = models.BooleanField(default=False, blank=True, help_text="Tick to let the following item wrap around the image")
     
