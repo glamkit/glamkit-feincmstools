@@ -1,7 +1,7 @@
 {% spaceless %}
 {% load mptt_tags %}
 {% load feincmstools_tags %}
-{% if all_pages %}
+{% if all_pages|length > 1 %}
 <div class="menu">
   {% for page,structure in all_pages|tree_info %}
     {% if structure.new_level %}
