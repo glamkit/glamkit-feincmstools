@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
 from django.template.loader import render_to_string
+from django.template.context import RequestContext
 
 from easy_thumbnails.files import get_thumbnailer
 
@@ -29,10 +30,11 @@ class Content(object):
 	render_template = None
 
 	def render(self, **kwargs):
+		assert 'request' in kwargs
 		template = getattr(self, 'render_template', getattr(self.get_content(), 'render_template', None) if hasattr(self, 'get_content') else None)
 		if not template:
 			raise NotImplementedError('No template defined for rendering %s content.' % self.__class__.__name__)
-		return render_to_string(template, dict(content=self, MEDIA_URL=settings.MEDIA_URL))
+		return render_to_string(template, {'content': self}, context_instance=RequestContext(kwargs['request']))
 
 MAX_ALT_TEXT_LENGTH = 1024
 
