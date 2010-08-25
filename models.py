@@ -85,6 +85,11 @@ class AbstractFile(Content, models.Model):
 			return os.path.split(self.file.name)[1] if self.with_extension else os.path.splitext(self.file.name)[0]
 		return None
 
+	def save(self, *args, **kwargs):
+		if not self.title:
+			self.title = self.get_title()
+		return super(AbstractFile, self).save(*args, **kwargs)
+
 class DownloadableContent(AbstractFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'file/%Y/%m/%d/')
 
