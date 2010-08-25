@@ -3,7 +3,10 @@ from django.db import models
 from django.template.loader import render_to_string
 
 class FriendlyNamed(models.Model):
-    name = models.CharField('Friendly name', max_length=255, help_text='Used in the admin interface only')
+    name = models.CharField('Friendly name',
+                            max_length=255,
+                            blank=True,
+                            help_text='Used in the admin interface only')
     
     class Meta:
         abstract = True
