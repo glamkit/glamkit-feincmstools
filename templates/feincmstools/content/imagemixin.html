@@ -1,5 +1,11 @@
-{% spaceless %}        
+{% spaceless %}
 <div class="image {{ content.get_position_display|lower }} {% if content.wrappable and not content.position %}left{% endif %}" style="
+        text-align: center;
+        {% if content.get_position_display|lower == 'centre' %}
+            width:100%;
+            display: block;
+        {%  else  %}
+            display: inline;
             {% if content.expand %}
                 width:{{ content.expand }};
             {% else  %}
@@ -7,6 +13,7 @@
                     width:{{ content.width }}px;
                 {% endif %}
             {% endif %}
+        {% endif %}
    ">
     
   {% if content.link_url %}
