@@ -51,6 +51,7 @@ class TextContent(models.Model):
 
 	formatter = TEXT_FORMATTER
 	content_field_name = 'text_block'
+	render_template = 'feincmstools/content/text_block.html'
 
 	class Meta:
 		abstract = True
@@ -58,7 +59,11 @@ class TextContent(models.Model):
 
 	def render(self, **kwargs):
 		true_self = self.get_content()
-		return true_self.formatter(true_self.content)
+		formatted_content = true_self.formatter(true_self.content)
+		return render_to_string(self.render_template,
+			{'content': true_self.content,
+                 'formatted_content': formatted_content},
+                context_instance=RequestContext(kwargs['request']))
 
 	form = TextileContentAdminForm
 	feincms_item_editor_form = TextileContentAdminForm
