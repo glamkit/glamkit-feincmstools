@@ -55,11 +55,8 @@ class ImageBase(models.Model):
 
 class ImageUseMixIn(models.Model):
     IMAGE_POSITIONS = (
-        ('L', 'Left'),
-        ('R', 'Right'),
-        ('C', 'Centre'),
-        ('B', 'Block'),
-        ('T', 'Thumbnail'),
+        ('F', 'full-width'),
+        ('R', 'float-right'),
         )
     
     caption = models.CharField(max_length=MAX_CAPTION_LENGTH, blank=True)
@@ -85,13 +82,8 @@ class ImageUseMixIn(models.Model):
         Returns a tuple (w, h) to which to resize the image
         """
         return {
-            'L': (212, 10000), #TODO: cheat!!
-            'R': (222, 10000),
-            'C': (212, 10000),
-            'B': (444, 10000),
-            'T': (202, 202),
-            
-        
+            'F': (510, 10000), #TODO: cheat!!
+            'R': (250, 10000),                    
         }[self.position]
 
     
