@@ -1,2 +1,4 @@
-{{ formatted_content }}
-<br style="clear:both">
+{% load generic_markup %}
+{% if content.style_class %}<div class="{{ content.style_class }}">{% else %}<div>{% endif %}
+{{ content.get_content.content|apply_markup }}
+</div><br style="clear:both">

@@ -40,30 +40,15 @@ MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
 
-try:
-	from template_utils.markup import formatter as apply_markup
-	TEXT_FORMATTER = staticmethod(apply_markup)
-except ImportError:
-	TEXT_FORMATTER = staticmethod(lambda content: content)
-
-class TextContent(models.Model):
+class TextContent(Content, models.Model):
 	content = models.TextField()
 
-	formatter = TEXT_FORMATTER
 	content_field_name = 'text_block'
 	render_template = 'feincmstools/content/text_block.html'
 
 	class Meta:
 		abstract = True
 		verbose_name = _("Text Block")
-
-	def render(self, **kwargs):
-		true_self = self.get_content()
-		formatted_content = true_self.formatter(true_self.content)
-		return render_to_string(self.render_template,
-			{'content': true_self.content,
-                 'formatted_content': formatted_content},
-                context_instance=RequestContext(kwargs['request']))
 
 	form = TextileContentAdminForm
 	feincms_item_editor_form = TextileContentAdminForm
