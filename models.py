@@ -6,11 +6,14 @@ from django.db import models
 from django.utils.translation import ugettext as _
 from django.template.loader import render_to_string
 from django.template.context import RequestContext
+from django.utils.importlib import import_module
+from django.core.exceptions import ImproperlyConfigured
 
 from easy_thumbnails.files import get_thumbnailer
 
 from base import *
 from forms import TextileContentAdminForm, ImageForm
+import settings as feincmstools_settings
 
 __all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
 
@@ -140,3 +143,46 @@ class AudioContent(AbstractFile):
 	class Meta:
 		abstract = True
 
+
+class ViewContent(models.Model):
+    view = models.CharField(max_length=255, blank=False,
+                            choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
+
+    class Meta:
+        abstract = True
+
+    @staticmethod
+    def get_view_from_path(path):
+        i = path.rfind('.')
+        module, view_name = path[:i], path[i+1:]
+        try:
+            mod = import_module(module)
+        except ImportError, e:
+            raise ImproperlyConfigured(
+                'Error importing ViewContent module %s: "%s"' %
+                (module, e))
+        try:
+            view = getattr(mod, view_name)
+        except AttributeError:
+            raise ImproperlyConfigured(
+                'Module "%s" does not define a "%s" method' %
+                (module, view_name))
+        return view
+
+    def render(self, **kwargs):
+        try:
+            view = self.get_view_from_path(self.view)
+        except:
+            if settings.DEBUG:
+                raise
+            return '<p>Content could not be found.</p>'
+        try:
+            response = view(kwargs.get('request'))
+        except:
+            if settings.DEBUG:
+                raise
+            return '<p>Error rendering content.</p>'
+        # extract response content if it is a HttpResponse object;
+        # otherwise let's hope it is a raw content string...
+        content = getattr(response, 'content', response)
+        return content
