@@ -3,7 +3,6 @@ import mptt, sys, types
 from django.conf import settings
 from django.db import models
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.importlib import import_module
 from django.utils.translation import ugettext as _
 
 from feincms.models import Base, Template
@@ -15,6 +14,14 @@ __all__ = ['LumpyContent', 'LumpyContentBase', 'HierarchicalLumpyContent', 'OneO
 
 def default_types():
     modules = getattr(settings, 'DEFAULT_CONTENT_TYPES', [])
+
+    if feincmstools_settings.CONTENT_VIEW_CHOICES:
+        if not 'feincmstools.models.ViewContent' in modules:
+            modules.append('feincmstools.models.ViewContent')
+        # (only add if views registered)
+        # Warning: this means syncdb won't add new tables until
+        # a view is registered in settings
+
     declared_types = ()
     for module in modules:
         try:
@@ -36,51 +43,9 @@ def default_types():
             declared_types += tuple(found_type)
         else:
             declared_types += (found_type,)
+
     return declared_types
 
-
-class ViewContent(models.Model):
-    view = models.CharField(max_length=255, blank=False,
-                            choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
-
-    class Meta:
-        abstract = True
-
-    @staticmethod
-    def get_view_from_path(path):
-        i = path.rfind('.')
-        module, view_name = path[:i], path[i+1:]
-        try:
-            mod = import_module(module)
-        except ImportError, e:
-            raise ImproperlyConfigured(
-                'Error importing ViewContent module %s: "%s"' %
-                (module, e))
-        try:
-            view = getattr(mod, view_name)
-        except AttributeError:
-            raise ImproperlyConfigured(
-                'Module "%s" does not define a "%s" method' %
-                (module, view_name))
-        return view
-
-    def render(self, **kwargs):
-        try:
-            view = self.get_view_from_path(self.view)
-        except:
-            if settings.DEBUG:
-                raise
-            return '<p>Content could not be found.</p>'
-        try:
-            response = view(kwargs.get('request'))
-        except:
-            if settings.DEBUG:
-                raise
-            return '<p>Error rendering content.</p>'
-        # extract response content if it is a HttpResponse object;
-        # otherwise let's hope it is a raw content string...
-        content = getattr(response, 'content', response)
-        return content
 
 # --- Lumpy models ------------------------------------------------------------
 
@@ -108,12 +73,6 @@ class LumpyContent(Base):
 
     # Auto-register default regions and all available feincmstools content types
     DEFAULT_REGIONS = (('main', _('Main')),)
-
-    if feincmstools_settings.CONTENT_VIEW_CHOICES:
-        default_content_types += (ViewContent,)
-        # (only add if views registered)
-        # Warning: this means syncdb won't add new tables until
-        # a view is registered in settings
 
     # undocumented trick:
     feincms_item_editor_includes = {
