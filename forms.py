@@ -14,6 +14,15 @@ class TextileContentAdminForm(ItemEditorForm):
 		self.fields['content'].widget.attrs.update(
 			{'class': 'item-textile-markitup'})
 
+class MarkdownContentAdminForm(ItemEditorForm):
+	content = forms.CharField(widget=forms.Textarea, required=False,
+							  label=_('Markdown'))
+
+	def __init__(self, *args, **kwargs):
+		super(MarkdownContentAdminForm, self).__init__(*args, **kwargs)
+		self.fields['content'].widget.attrs.update(
+			{'class': 'item-markdown-markitup'})
+
 
 # Image preview
 

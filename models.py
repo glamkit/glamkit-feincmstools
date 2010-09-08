@@ -10,9 +10,9 @@ from django.template.context import RequestContext
 from easy_thumbnails.files import get_thumbnailer
 
 from base import *
-from forms import TextileContentAdminForm, ImageForm
+from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImageForm
 
-__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
+__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
 
 class Reusable(object):
 	__metaclass__ = ReusableBase
@@ -56,6 +56,24 @@ class TextContent(Content, models.Model):
 	feincms_item_editor_includes = {
 		'head': [ 'feincmstools/textilecontent/init.html' ],
 		}
+
+class MarkdownTextContent(Content, models.Model):
+	content = models.TextField()
+
+	content_field_name = 'text_block'
+	render_template = 'feincmstools/content/markdown_text_block.html'
+
+	class Meta:
+		abstract = True
+		verbose_name = _("Text Block")
+
+	form = MarkdownContentAdminForm
+	feincms_item_editor_form = MarkdownContentAdminForm
+
+	feincms_item_editor_includes = {
+		'head': [ 'feincmstools/markdowncontent/init.html' ],
+		}
+
 
 class AbstractFile(Content, models.Model):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
