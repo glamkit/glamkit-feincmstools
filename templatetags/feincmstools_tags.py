@@ -1,4 +1,4 @@
-# from feincms.module.page.templatetags.feincms_page_tags
+import os
 
 from django import template
 register = template.Library()
@@ -38,3 +38,8 @@ def is_sibling_of(page1, page2):
     if page1 is None or page2 is None:
         return False
     return (page1.parent_id == page2.parent_id)
+
+@register.filter
+def get_extension(filename):
+    """ Return the extension from a file name """
+    return os.path.splitext(filename)[1][1:]
