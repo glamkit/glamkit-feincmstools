@@ -3,6 +3,6 @@
 {% block extrahead %}
 <script type="text/javascript" src="/media/admin/js/jquery.min.js"></script>
 {% load wysiwyg %}
-{% wysiwyg_setup "markitup-supertextile" %}
-{% wysiwyg_instantiate "markitup-supertextile" "id_content" %}
+{% wysiwyg_setup "markitup-supertextile" request %}
+{% wysiwyg_instantiate "markitup-supertextile" "id_content" request %}
 {% endblock %}
