@@ -5,9 +5,17 @@ from django.utils.translation import ugettext as _
 
 class LumpyContentAdmin(editor.ItemEditor):
     def get_template_list(self):
-        return ['feincmstools/item_editor.html'] + \
-            super(LumpyContentAdmin, self).get_template_list()
-    
+        opts = self.model._meta
+        return [
+            'admin/%s/%s/item_editor.html' % (
+                opts.app_label, opts.object_name.lower()),
+            'admin/%s/item_editor.html' % opts.app_label,
+            'admin/feincms/%s/%s/item_editor.html' % (
+                opts.app_label, opts.object_name.lower()),
+            'admin/feincms/%s/item_editor.html' % opts.app_label,
+            'feincmstools/item_editor.html',
+            'admin/feincms/item_editor.html',
+            ]    
     
 class HierarchicalLumpyContentAdmin(LumpyContentAdmin, editor.TreeEditor):
     raw_id_fields = ('parent',)
