@@ -74,11 +74,6 @@ class LumpyContent(Base):
     # Auto-register default regions and all available feincmstools content types
     DEFAULT_REGIONS = (('main', _('Main')),)
 
-    # undocumented trick:
-    feincms_item_editor_includes = {
-        'head': set(['feincmstools/item_editor_head.html' ]),
-        }
-
     @classmethod
     def _register(cls):
         if not cls._meta.abstract: # concrete subclasses only
