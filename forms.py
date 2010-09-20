@@ -3,6 +3,7 @@ from django.contrib.admin.widgets import ForeignKeyRawIdWidget
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
+from easy_thumbnails.files import get_thumbnailer
 from feincms.admin.editor import ItemEditorForm
 
 class TextileContentAdminForm(ItemEditorForm):
@@ -33,11 +34,10 @@ class ImagePreviewWidget(forms.HiddenInput):
 		
 	def render(self, name, data, attrs={}):
 		if self.instance:
-			# TODO: remove inline styling
-			return mark_safe('<img src="%s" class="feincmstools-thumbnail" '
-							 'style="position: absolute; margin: 10px; '
-							 'right: 0px; "/>' % (
-					self.instance.get_content().get_thumbnail().url,))
+			options = dict(size=(120, 120), crop=False)
+			thumbnail = get_thumbnailer(self.instance.get_content().file).get_thumbnail(options)
+			image_url = self.instance.get_content().file.url
+			return mark_safe('<a href="%(image_url)s" target="_blank"><img src="%(thumbnail_url)s" class="feincmstools-thumbnail"/>' % {'image_url': image_url, 'thumbnail_url': thumbnail.url})
 		else:
 			return ''
 
