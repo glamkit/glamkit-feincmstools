@@ -37,7 +37,7 @@ class ImagePreviewWidget(forms.HiddenInput):
 			options = dict(size=(120, 120), crop=False)
 			thumbnail = get_thumbnailer(self.instance.get_content().file).get_thumbnail(options)
 			image_url = self.instance.get_content().file.url
-			return mark_safe('<a href="%(image_url)s" target="_blank"><img src="%(thumbnail_url)s" class="feincmstools-thumbnail"/>' % {'image_url': image_url, 'thumbnail_url': thumbnail.url})
+			return mark_safe('<a href="%(image_url)s" target="_blank"><img src="%(thumbnail_url)s" class="feincmstools-thumbnail"/></a>' % {'image_url': image_url, 'thumbnail_url': thumbnail.url})
 		else:
 			return ''
 
