@@ -12,7 +12,7 @@ div.markItUp { width: auto !important; }
 
 <script type="text/javascript">
     contentblock_init_handlers.push(function(){
-        $('.order-machine textarea[class=item-textile-markitup], #frontend_editor textarea[class=item-textile-markitup]').each(function(){
+        markitup.jQuery('.order-machine textarea[class=item-textile-markitup], #frontend_editor textarea[class=item-textile-markitup]').each(function(){
             markitup.jQuery(this).markItUp(myMarkitupSettings);
         });
     });
