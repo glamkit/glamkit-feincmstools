@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
 from django.template.loader import render_to_string
-from django.template.context import RequestContext
+from django.template.context import RequestContext, Context
 from django.utils.importlib import import_module
 from django.core.exceptions import ImproperlyConfigured
 
@@ -37,7 +37,10 @@ class Content(object):
 		template = getattr(self, 'render_template', getattr(self.get_content(), 'render_template', None) if hasattr(self, 'get_content') else None)
 		if not template:
 			raise NotImplementedError('No template defined for rendering %s content.' % self.__class__.__name__)
-		return render_to_string(template, {'content': self}, context_instance=RequestContext(kwargs['request']))
+		context = Context({'content': self})
+		if 'context' in kwargs:
+			context.update(kwargs['context'])
+		return render_to_string(template, context, context_instance=RequestContext(kwargs['request']))
 
 MAX_ALT_TEXT_LENGTH = 1024
 
