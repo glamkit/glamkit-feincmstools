@@ -11,6 +11,10 @@
             {% else  %}
                 {% if content.width %}
                     width:{{ content.width }}px;
+                {% else %}
+                    {% if region_maximum_width %}
+                        width:{{ region_maximum_width }}px;
+                    {%  endif %}
                 {% endif %}
             {% endif %}
         {% endif %}
@@ -30,6 +34,10 @@
             {% else  %}
                 {% if content.width %}
                     width:{{ content.width }}px;
+                {% else %}
+                    {% if region_maximum_width %}
+                        width:{{ region_maximum_width }}px;
+                    {%  endif %}
                 {% endif %}
                 {% if content.height %}
                     height:{{ content.height }}px;
