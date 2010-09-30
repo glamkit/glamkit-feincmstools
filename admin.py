@@ -1,7 +1,9 @@
 from django.contrib import admin
-from feincms.admin import editor
 from django.conf import settings
 from django.utils.translation import ugettext as _
+from django.contrib.admin.options import InlineModelAdmin
+
+from feincms.admin import editor
 
 class LumpyContentAdmin(editor.ItemEditor):
     
@@ -36,3 +38,18 @@ class ImageAdmin(admin.ModelAdmin):
             image.get_thumbnail(size=ADMIN_THUMBNAIL_SIZE).url)
     admin_thumbnail.allow_tags = True
     admin_thumbnail.short_description = 'Thumbnail'
+
+
+class ImageNormalInline(InlineModelAdmin):
+    
+    def __init__(self, *args, **kwargs):
+        super(ImageNormalInline, self).__init__(*args, **kwargs)
+        # must inject 'preview' afterwards or it won't validate
+        # since it is not part of the model
+        self.declared_fieldsets[0][1]['fields'] = ('preview',) + self.declared_fieldsets[0][1]['fields']
+
+class ImageStackedNormalInline(ImageNormalInline):
+    template = 'admin/edit_inline/stacked.html'
+
+class ImageTabularNormalInline(ImageNormalInline):
+    template = 'admin/edit_inline/tabular.html'
