@@ -4,8 +4,9 @@ import os
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
-from django.template.loader import render_to_string
+from django.template.loader import render_to_string, find_template
 from django.template.context import RequestContext, Context
+from django.template import TemplateDoesNotExist
 from django.utils.importlib import import_module
 from django.core.exceptions import ImproperlyConfigured
 
@@ -30,6 +31,7 @@ class OneOff(object):
 		abstract = True
 
 class Content(object):
+	init_template = None
 	render_template = None
 
 	def render(self, **kwargs):
@@ -42,6 +44,46 @@ class Content(object):
 			context.update(kwargs['context'])
 		return render_to_string(template, context, context_instance=RequestContext(kwargs['request']))
 
+	@classmethod
+	def _detect_template(cls, name):
+		"""
+		Look for template in app/model-specific location.
+
+		Return path to template or None if not found.
+		
+		"""
+		path = '%(app_label)s/lump/%(model_name)s/%(name)s' % {
+			'app_label': cls.__base__._meta.app_label,
+			'model_name': cls.__base__._meta.module_name,
+			'name': name,
+			}
+		try:
+			find_template(path)
+		except TemplateDoesNotExist:
+			return None
+		else:
+			return path
+	
+	@classmethod
+	def initialize_type(cls, **kwargs):
+		""" FeinCMS hook calls this method upon creation of content types. """
+		# inject init template (if present) into feincms_item_editor_includes
+		# (must be injected into cls.__base__, which should be the actual
+		# FeinCMS content type class rather than the registered subclass)
+		init_path = cls.init_template or cls._detect_template('init.html')
+		if init_path:
+			if not hasattr(cls.__base__, 'feincms_item_editor_includes'):
+				setattr(cls.__base__, 'feincms_item_editor_includes', {})
+			if not hasattr(cls.__base__.feincms_item_editor_includes, 'head'):
+				cls.__base__.feincms_item_editor_includes['head'] = []
+			cls.__base__.feincms_item_editor_includes['head'].append(init_path)
+			print cls.__base__.feincms_item_editor_includes
+
+		if cls.render_template is None:
+			cls.render_template = cls._detect_template('render.html')
+		print cls.render_template
+
+        
 MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
