@@ -31,6 +31,9 @@ class OneOff(object):
 		abstract = True
 
 class Lump(models.Model):
+	class Meta:
+		abstract = True
+
 	init_template = None
 	render_template = None
 
