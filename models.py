@@ -12,7 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from easy_thumbnails.files import get_thumbnailer
 
 from base import *
-from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImageLumpForm
+from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImagePreviewLumpForm
 import settings as feincmstools_settings
 
 __all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
@@ -129,7 +129,7 @@ class ImageContent(AbstractFile):
 								max_length=MAX_ALT_TEXT_LENGTH,
 								help_text= 'Description of the image content')
 
-	form_base = ImageLumpForm
+	form_base = ImagePreviewLumpForm
 	content_field_name = 'image'
 	render_template = 'feincmstools/content/image.html'
 
