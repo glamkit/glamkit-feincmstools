@@ -2,7 +2,7 @@ from django import forms
 from django.utils.translation import ugettext as _
 from django.contrib.admin.widgets import ForeignKeyRawIdWidget
 
-from admin_enhancements.image_preview import ImagePreviewInlineForm
+from adminboost.image_preview import ImagePreviewInlineForm
 from feincms.admin.editor import ItemEditorForm
 
 class TextileContentAdminForm(ItemEditorForm):
