@@ -16,7 +16,7 @@ from base import *
 from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImageLumpForm
 import settings as feincmstools_settings
 
-__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
+__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent', 'Lump']
 
 class Reusable(object):
 	__metaclass__ = ReusableBase
@@ -30,7 +30,7 @@ class OneOff(object):
 	class Meta:
 		abstract = True
 
-class Content(object):
+class Lump(models.Model):
 	init_template = None
 	render_template = None
 
@@ -77,18 +77,16 @@ class Content(object):
 			if not hasattr(cls.__base__.feincms_item_editor_includes, 'head'):
 				cls.__base__.feincms_item_editor_includes['head'] = []
 			cls.__base__.feincms_item_editor_includes['head'].append(init_path)
-			print cls.__base__.feincms_item_editor_includes
 
 		if cls.render_template is None:
 			cls.render_template = cls._detect_template('render.html')
-		print cls.render_template
 
         
 MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
 
-class TextContent(Content, models.Model):
+class TextContent(Lump):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
@@ -105,7 +103,7 @@ class TextContent(Content, models.Model):
 		'head': [ 'feincmstools/textilecontent/init.html' ],
 		}
 
-class MarkdownTextContent(Content, models.Model):
+class MarkdownTextContent(Lump):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
@@ -123,7 +121,7 @@ class MarkdownTextContent(Content, models.Model):
 		}
 
 
-class AbstractFile(Content, models.Model):
+class AbstractFile(Lump):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
 
 	with_extension = False
@@ -207,7 +205,7 @@ class AudioContent(AbstractFile):
 		abstract = True
 
 
-class ViewContent(models.Model):
+class ViewContent(Lump):
     view = models.CharField(max_length=255, blank=False,
                             choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
 
