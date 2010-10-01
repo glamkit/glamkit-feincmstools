@@ -90,7 +90,6 @@ class TextContent(Lump):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
-	render_template = 'feincmstools/content/text_block.html'
 
 	class Meta:
 		abstract = True
@@ -99,15 +98,11 @@ class TextContent(Lump):
 	form = TextileContentAdminForm
 	feincms_item_editor_form = TextileContentAdminForm
 
-	feincms_item_editor_includes = {
-		'head': [ 'feincmstools/textilecontent/init.html' ],
-		}
 
 class MarkdownTextContent(Lump):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
-	render_template = 'feincmstools/content/markdown_text_block.html'
 
 	class Meta:
 		abstract = True
@@ -115,10 +110,6 @@ class MarkdownTextContent(Lump):
 
 	form = MarkdownContentAdminForm
 	feincms_item_editor_form = MarkdownContentAdminForm
-
-	feincms_item_editor_includes = {
-		'head': [ 'feincmstools/markdowncontent/init.html' ],
-		}
 
 
 class AbstractFile(Lump):
@@ -149,7 +140,6 @@ class DownloadableContent(AbstractFile):
 
 	content_field_name = 'file'
 	with_extension = True
-	render_template = 'feincmstools/content/file.html'
 
 	class Meta:
 		abstract = True
@@ -171,7 +161,6 @@ class ImageContent(AbstractFile):
 
 	form_base = ImageLumpForm
 	content_field_name = 'image'
-	render_template = 'feincmstools/content/image.html'
 
 	class Meta:
 		abstract = True
