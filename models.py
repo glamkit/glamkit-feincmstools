@@ -53,19 +53,28 @@ class Lump(models.Model):
 		Look for template in app/model-specific location.
 
 		Return path to template or None if not found.
+		Search using app/model names for parent classes to allow inheritance.
 		
 		"""
-		path = '%(app_label)s/lump/%(model_name)s/%(name)s' % {
-			'app_label': cls.__base__._meta.app_label,
-			'model_name': cls.__base__._meta.module_name,
-			'name': name,
+		_class = cls
+		# traverse parent classes up to (but not including) Lump
+		while(Lump not in _class.__bases__):
+			# choose the correct path for multiple inheritance
+			(base,) = \
+				[base for base in _class.__bases__ if issubclass(base, Lump)]
+			path = '%(app_label)s/lump/%(model_name)s/%(name)s' % {
+				'app_label': base._meta.app_label,
+				'model_name': base._meta.module_name,
+				'name': name,
 			}
-		try:
-			find_template(path)
-		except TemplateDoesNotExist:
-			return None
-		else:
-			return path
+			try:
+				find_template(path)
+			except TemplateDoesNotExist:
+				pass
+			else:
+				return path
+			_class = base
+		return None
 	
 	@classmethod
 	def initialize_type(cls, **kwargs):
