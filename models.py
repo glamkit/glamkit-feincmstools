@@ -60,8 +60,10 @@ class Lump(models.Model):
 		# traverse parent classes up to (but not including) Lump
 		while(Lump not in _class.__bases__):
 			# choose the correct path for multiple inheritance
-			(base,) = \
-				[base for base in _class.__bases__ if issubclass(base, Lump)]
+			base = [
+				base for base in _class.__bases__ if issubclass(base, Lump)][0]
+			# (this will only take the left-most relevant path in any rare
+			# cases involving diamond-relationships with Lump)
 			path = '%(app_label)s/lump/%(model_name)s/%(name)s' % {
 				'app_label': base._meta.app_label,
 				'model_name': base._meta.module_name,
