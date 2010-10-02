@@ -9,7 +9,6 @@ from django.template.context import RequestContext, Context
 from django.utils.importlib import import_module
 from django.core.exceptions import ImproperlyConfigured
 
-from easy_thumbnails.files import get_thumbnailer
 
 from base import *
 from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImagePreviewLumpForm
@@ -137,6 +136,7 @@ class ImageContent(AbstractFile):
 		abstract = True
 
 	def get_thumbnail(self, **kwargs):
+		from easy_thumbnails.files import get_thumbnailer
 		options = dict(size=(100, 100), crop=True)
 		options.update(kwargs)
 		return get_thumbnailer(self.file).get_thumbnail(options)
