@@ -4,8 +4,9 @@ import os
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
-from django.template.loader import render_to_string
+from django.template.loader import render_to_string, find_template
 from django.template.context import RequestContext, Context
+from django.template import TemplateDoesNotExist
 from django.utils.importlib import import_module
 from django.core.exceptions import ImproperlyConfigured
 
@@ -14,7 +15,7 @@ from base import *
 from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImagePreviewLumpForm
 import settings as feincmstools_settings
 
-__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
+__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent', 'Lump']
 
 class Reusable(object):
 	__metaclass__ = ReusableBase
@@ -28,7 +29,11 @@ class OneOff(object):
 	class Meta:
 		abstract = True
 
-class Content(object):
+class Lump(models.Model):
+	class Meta:
+		abstract = True
+
+	init_template = None
 	render_template = None
 
 	def render(self, **kwargs):
@@ -41,15 +46,63 @@ class Content(object):
 			context.update(kwargs['context'])
 		return render_to_string(template, context, context_instance=RequestContext(kwargs['request']))
 
+	@classmethod
+	def _detect_template(cls, name):
+		"""
+		Look for template in app/model-specific location.
+
+		Return path to template or None if not found.
+		Search using app/model names for parent classes to allow inheritance.
+		
+		"""
+		_class = cls
+		# traverse parent classes up to (but not including) Lump
+		while(Lump not in _class.__bases__):
+			# choose the correct path for multiple inheritance
+			base = [
+				base for base in _class.__bases__ if issubclass(base, Lump)][0]
+			# (this will only take the left-most relevant path in any rare
+			# cases involving diamond-relationships with Lump)
+			path = '%(app_label)s/lump/%(model_name)s/%(name)s' % {
+				'app_label': base._meta.app_label,
+				'model_name': base._meta.module_name,
+				'name': name,
+			}
+			try:
+				find_template(path)
+			except TemplateDoesNotExist:
+				pass
+			else:
+				return path
+			_class = base
+		return None
+	
+	@classmethod
+	def initialize_type(cls, **kwargs):
+		""" FeinCMS hook calls this method upon creation of content types. """
+		# inject init template (if present) into feincms_item_editor_includes
+		# (must be injected into cls.__base__, which should be the actual
+		# FeinCMS content type class rather than the registered subclass)
+		init_path = cls.init_template or cls._detect_template('init.html')
+		if init_path:
+			if not hasattr(cls.__base__, 'feincms_item_editor_includes'):
+				setattr(cls.__base__, 'feincms_item_editor_includes', {})
+			if not hasattr(cls.__base__.feincms_item_editor_includes, 'head'):
+				cls.__base__.feincms_item_editor_includes['head'] = []
+			cls.__base__.feincms_item_editor_includes['head'].append(init_path)
+
+		if cls.render_template is None:
+			cls.render_template = cls._detect_template('render.html')
+
+        
 MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
 
-class TextContent(Content, models.Model):
+class TextContent(Lump):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
-	render_template = 'feincmstools/content/text_block.html'
 
 	class Meta:
 		abstract = True
@@ -58,15 +111,11 @@ class TextContent(Content, models.Model):
 	form = TextileContentAdminForm
 	feincms_item_editor_form = TextileContentAdminForm
 
-	feincms_item_editor_includes = {
-		'head': [ 'feincmstools/textilecontent/init.html' ],
-		}
 
-class MarkdownTextContent(Content, models.Model):
+class MarkdownTextContent(Lump):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
-	render_template = 'feincmstools/content/markdown_text_block.html'
 
 	class Meta:
 		abstract = True
@@ -75,12 +124,8 @@ class MarkdownTextContent(Content, models.Model):
 	form = MarkdownContentAdminForm
 	feincms_item_editor_form = MarkdownContentAdminForm
 
-	feincms_item_editor_includes = {
-		'head': [ 'feincmstools/markdowncontent/init.html' ],
-		}
 
-
-class AbstractFile(Content, models.Model):
+class AbstractFile(Lump):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
 
 	with_extension = False
@@ -108,7 +153,6 @@ class DownloadableContent(AbstractFile):
 
 	content_field_name = 'file'
 	with_extension = True
-	render_template = 'feincmstools/content/file.html'
 
 	class Meta:
 		abstract = True
@@ -130,7 +174,6 @@ class ImageContent(AbstractFile):
 
 	form_base = ImagePreviewLumpForm
 	content_field_name = 'image'
-	render_template = 'feincmstools/content/image.html'
 
 	class Meta:
 		abstract = True
@@ -165,7 +208,7 @@ class AudioContent(AbstractFile):
 		abstract = True
 
 
-class ViewContent(models.Model):
+class ViewContent(Lump):
     view = models.CharField(max_length=255, blank=False,
                             choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
 
