@@ -63,7 +63,7 @@ class Lump(models.Model):
 				base for base in _class.__bases__ if issubclass(base, Lump)][0]
 			# (this will only take the left-most relevant path in any rare
 			# cases involving diamond-relationships with Lump)
-			path = '%(app_label)s/lump/%(model_name)s/%(name)s' % {
+			path = '%(app_label)s/lumps/%(model_name)s/%(name)s' % {
 				'app_label': base._meta.app_label,
 				'model_name': base._meta.module_name,
 				'name': name,
