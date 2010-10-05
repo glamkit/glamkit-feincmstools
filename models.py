@@ -10,7 +10,6 @@ from django.template import TemplateDoesNotExist
 from django.utils.importlib import import_module
 from django.core.exceptions import ImproperlyConfigured
 
-
 from base import *
 from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImagePreviewLumpForm
 import settings as feincmstools_settings
@@ -33,7 +32,7 @@ class Lump(models.Model):
 	class Meta:
 		abstract = True
 
-	init_template = None
+	init_template = None # For use in the admin
 	render_template = None
 
 	def render(self, **kwargs):
@@ -45,7 +44,21 @@ class Lump(models.Model):
 		if 'context' in kwargs:
 			context.update(kwargs['context'])
 		return render_to_string(template, context, context_instance=RequestContext(kwargs['request']))
-
+	
+	def __init__(self, *args, **kwargs):
+		if not hasattr(self, '_templates_initialised'):
+			parent_class = getattr(self, '_feincms_content_class', None)
+			init_path = self.init_template or self.__class__._detect_template('init.html')
+			if parent_class and init_path:
+				if not hasattr(parent_class, 'feincms_item_editor_includes'):
+					setattr(parent_class, 'feincms_item_editor_includes', {})
+				parent_class.feincms_item_editor_includes.setdefault('head', set()).add(init_path)
+			
+			if self.render_template is None:
+				self.render_template = self.__class__._detect_template('render.html')
+		self._templates_initialised = True
+		super(Lump, self).__init__(*args, **kwargs)
+	
 	@classmethod
 	def _detect_template(cls, name):
 		"""
@@ -69,6 +82,7 @@ class Lump(models.Model):
 				'name': name,
 			}
 			try:
+				#import pdb; pdb.set_trace()
 				find_template(path)
 			except TemplateDoesNotExist:
 				pass
@@ -76,25 +90,8 @@ class Lump(models.Model):
 				return path
 			_class = base
 		return None
-	
-	@classmethod
-	def initialize_type(cls, **kwargs):
-		""" FeinCMS hook calls this method upon creation of content types. """
-		# inject init template (if present) into feincms_item_editor_includes
-		# (must be injected into cls.__base__, which should be the actual
-		# FeinCMS content type class rather than the registered subclass)
-		init_path = cls.init_template or cls._detect_template('init.html')
-		if init_path:
-			if not hasattr(cls.__base__, 'feincms_item_editor_includes'):
-				setattr(cls.__base__, 'feincms_item_editor_includes', {})
-			if not hasattr(cls.__base__.feincms_item_editor_includes, 'head'):
-				cls.__base__.feincms_item_editor_includes['head'] = []
-			cls.__base__.feincms_item_editor_includes['head'].append(init_path)
 
-		if cls.render_template is None:
-			cls.render_template = cls._detect_template('render.html')
 
-        
 MAX_ALT_TEXT_LENGTH = 1024
 
 UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
@@ -209,44 +206,44 @@ class AudioContent(AbstractFile):
 
 
 class ViewContent(Lump):
-    view = models.CharField(max_length=255, blank=False,
-                            choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
+	view = models.CharField(max_length=255, blank=False,
+							choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
 
-    class Meta:
-        abstract = True
+	class Meta:
+		abstract = True
 
-    @staticmethod
-    def get_view_from_path(path):
-        i = path.rfind('.')
-        module, view_name = path[:i], path[i+1:]
-        try:
-            mod = import_module(module)
-        except ImportError, e:
-            raise ImproperlyConfigured(
-                'Error importing ViewContent module %s: "%s"' %
-                (module, e))
-        try:
-            view = getattr(mod, view_name)
-        except AttributeError:
-            raise ImproperlyConfigured(
-                'Module "%s" does not define a "%s" method' %
-                (module, view_name))
-        return view
+	@staticmethod
+	def get_view_from_path(path):
+		i = path.rfind('.')
+		module, view_name = path[:i], path[i+1:]
+		try:
+			mod = import_module(module)
+		except ImportError, e:
+			raise ImproperlyConfigured(
+				'Error importing ViewContent module %s: "%s"' %
+				(module, e))
+		try:
+			view = getattr(mod, view_name)
+		except AttributeError:
+			raise ImproperlyConfigured(
+				'Module "%s" does not define a "%s" method' %
+				(module, view_name))
+		return view
 
-    def render(self, **kwargs):
-        try:
-            view = self.get_view_from_path(self.view)
-        except:
-            if settings.DEBUG:
-                raise
-            return '<p>Content could not be found.</p>'
-        try:
-            response = view(kwargs.get('request'))
-        except:
-            if settings.DEBUG:
-                raise
-            return '<p>Error rendering content.</p>'
-        # extract response content if it is a HttpResponse object;
-        # otherwise let's hope it is a raw content string...
-        content = getattr(response, 'content', response)
-        return content
+	def render(self, **kwargs):
+		try:
+			view = self.get_view_from_path(self.view)
+		except:
+			if settings.DEBUG:
+				raise
+			return '<p>Content could not be found.</p>'
+		try:
+			response = view(kwargs.get('request'))
+		except:
+			if settings.DEBUG:
+				raise
+			return '<p>Error rendering content.</p>'
+		# extract response content if it is a HttpResponse object;
+		# otherwise let's hope it is a raw content string...
+		content = getattr(response, 'content', response)
+		return content
