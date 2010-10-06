@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.template.loader import render_to_string
 
-class FriendlyNamed(models.Model):
+class FriendlyNamedMixin(models.Model):
     name = models.CharField('Friendly name',
                             max_length=255,
                             blank=True,
@@ -17,7 +17,7 @@ class FriendlyNamed(models.Model):
 
 MAX_CAPTION_LENGTH = 1024
 
-class ImageUseMixIn(models.Model):
+class ImageOptionsMixin(models.Model):
     IMAGE_POSITIONS = (
         ('L', 'Left'),
         ('R', 'Right'),
@@ -43,7 +43,7 @@ class ImageUseMixIn(models.Model):
     width = models.PositiveIntegerField(blank=True, null=True, help_text="Forces the width to a certain value (in pixels)")
     height = models.PositiveIntegerField(blank=True, null=True, help_text="Forces the height to a certain value (in pixels)")
     
-    render_template = 'feincmstools/content/imagemixin.html'
+    render_template = 'feincmstools/lumps/imageoptions/render.html'
     
     class Meta:
         abstract = True
