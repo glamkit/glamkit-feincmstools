@@ -14,7 +14,10 @@ from base import *
 from forms import ImagePreviewLumpForm
 import settings as feincmstools_settings
 
-__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent', 'Lump']
+__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Lump', 'Reusable', 'OneOff', 'AbstractText', 'AbstractGenericFile', 'AbstractImage', 'AbstractAudio', 'AbstractVideo']
+
+UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
+MAX_ALT_TEXT_LENGTH = 1024
 
 class Reusable(object):
 	__metaclass__ = ReusableBase
@@ -32,8 +35,8 @@ class Lump(models.Model):
 	class Meta:
 		abstract = True
 
-	init_template = None # For use in the admin
-	render_template = None
+	init_template = None # For initialisation in the admin
+	render_template = None # For rendering on the front end 
 
 	def render(self, **kwargs):
 		assert 'request' in kwargs
@@ -92,11 +95,7 @@ class Lump(models.Model):
 		return None
 
 
-MAX_ALT_TEXT_LENGTH = 1024
-
-UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
-
-class TextContent(Lump):
+class AbstractText(models.Model):
 	content = models.TextField()
 
 	content_field_name = 'text_block'
@@ -105,7 +104,7 @@ class TextContent(Lump):
 		abstract = True
 		verbose_name = _("Text Block")
 
-class AbstractFile(Lump):
+class AbstractTitledFile(models.Model):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
 
 	with_extension = False
@@ -126,9 +125,9 @@ class AbstractFile(Lump):
 	def save(self, *args, **kwargs):
 		if not self.title:
 			self.title = self.get_title()
-		return super(AbstractFile, self).save(*args, **kwargs)
+		return super(AbstractTitledFile, self).save(*args, **kwargs)
 
-class DownloadableContent(AbstractFile):
+class AbstractGenericFile(AbstractTitledFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'file/%Y/%m/%d/')
 
 	content_field_name = 'file'
@@ -136,13 +135,10 @@ class DownloadableContent(AbstractFile):
 
 	class Meta:
 		abstract = True
-		verbose_name = "Downloadable File"
-		verbose_name_plural = "Downloadable Files"
+		verbose_name = "File"
+		verbose_name_plural = "Files"
 
-
-# --- Media models ------------------------------------------------------------
-
-class ImageContent(AbstractFile):
+class AbstractImage(AbstractTitledFile):
 	file = models.ImageField(upload_to=UPLOAD_PATH+'images/%Y/%m/%d/',
 							 height_field='file_height', width_field='file_width',
 							 max_length=255)
@@ -150,7 +146,7 @@ class ImageContent(AbstractFile):
 	file_width = models.PositiveIntegerField(editable=False)
 	alt_text = models.CharField('Alternate text', blank=True,
 								max_length=MAX_ALT_TEXT_LENGTH,
-								help_text= 'Description of the image content')
+								help_text= 'Description of the image')
 
 	form_base = ImagePreviewLumpForm
 	content_field_name = 'image'
@@ -164,7 +160,7 @@ class ImageContent(AbstractFile):
 		options.update(kwargs)
 		return get_thumbnailer(self.file).get_thumbnail(options)
 
-class VideoContent(AbstractFile):
+class AbstractVideo(AbstractTitledFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'video/%Y/%m/%d/', max_length=255)
 	image = models.ImageField(upload_to=UPLOAD_PATH+'video/%Y/%m/%d/still_image/', max_length=255, blank=True)
 
@@ -179,7 +175,7 @@ class VideoContent(AbstractFile):
 	def height(self):
 		return 384
 
-class AudioContent(AbstractFile):
+class AbstractAudio(AbstractTitledFile):
 	file = models.FileField(upload_to=UPLOAD_PATH+'audio/%Y/%m/%d/', max_length=255)
 
 	content_field_name = 'audio'
@@ -188,7 +184,7 @@ class AudioContent(AbstractFile):
 		abstract = True
 
 
-class ViewContent(Lump):
+class AbstractView(Lump):
 	view = models.CharField(max_length=255, blank=False,
 							choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
 
@@ -203,7 +199,7 @@ class ViewContent(Lump):
 			mod = import_module(module)
 		except ImportError, e:
 			raise ImproperlyConfigured(
-				'Error importing ViewContent module %s: "%s"' %
+				'Error importing AbstractView module %s: "%s"' %
 				(module, e))
 		try:
 			view = getattr(mod, view_name)

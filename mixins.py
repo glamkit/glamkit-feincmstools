@@ -18,6 +18,11 @@ class FriendlyNamedMixin(models.Model):
 MAX_CAPTION_LENGTH = 1024
 
 class ImageOptionsMixin(models.Model):
+    """ Convenient default options for controlling the display of an image.
+        Feel free to use it as-is if it fits your needs, or use it as a reference to
+        make your own.
+    """
+    
     IMAGE_POSITIONS = (
         ('L', 'Left'),
         ('R', 'Right'),

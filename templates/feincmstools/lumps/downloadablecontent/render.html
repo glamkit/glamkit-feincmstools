@@ -1,5 +1,0 @@
-{% load feincmstools_tags %}
-
-<div class='downloadable'>
-	<a class="downloadable_link" href='{{ content.get_content.file.url }}'>{{ content.get_content.get_title }} ({{ content.get_content.file.name|get_extension|upper }} {{ content.get_content.file.file.size|filesizeformat }})</a>
-</div>
