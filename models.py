@@ -11,10 +11,10 @@ from django.utils.importlib import import_module
 from django.core.exceptions import ImproperlyConfigured
 
 from base import *
-from forms import MarkdownContentAdminForm, TextileContentAdminForm, ImagePreviewLumpForm
+from forms import ImagePreviewLumpForm
 import settings as feincmstools_settings
 
-__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'MarkdownTextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent', 'Lump']
+__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent', 'Lump']
 
 class Reusable(object):
 	__metaclass__ = ReusableBase
@@ -104,23 +104,6 @@ class TextContent(Lump):
 	class Meta:
 		abstract = True
 		verbose_name = _("Text Block")
-
-	form = TextileContentAdminForm
-	feincms_item_editor_form = TextileContentAdminForm
-
-
-class MarkdownTextContent(Lump):
-	content = models.TextField()
-
-	content_field_name = 'text_block'
-
-	class Meta:
-		abstract = True
-		verbose_name = _("Text Block")
-
-	form = MarkdownContentAdminForm
-	feincms_item_editor_form = MarkdownContentAdminForm
-
 
 class AbstractFile(Lump):
 	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))

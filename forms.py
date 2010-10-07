@@ -5,25 +5,6 @@ from django.contrib.admin.widgets import ForeignKeyRawIdWidget
 from adminboost.preview import ImagePreviewInlineForm
 from feincms.admin.editor import ItemEditorForm
 
-class TextileContentAdminForm(ItemEditorForm):
-	content = forms.CharField(widget=forms.Textarea, required=False,
-							  label=_('Textile content'))
-
-	def __init__(self, *args, **kwargs):
-		super(TextileContentAdminForm, self).__init__(*args, **kwargs)
-		self.fields['content'].widget.attrs.update(
-			{'class': 'item-textile-markitup'})
-
-class MarkdownContentAdminForm(ItemEditorForm):
-	content = forms.CharField(widget=forms.Textarea, required=False,
-							  label=_('Markdown'))
-
-	def __init__(self, *args, **kwargs):
-		super(MarkdownContentAdminForm, self).__init__(*args, **kwargs)
-		self.fields['content'].widget.attrs.update(
-			{'class': 'item-markdown-markitup'})
-
-
 class FormWithRawIDFields(ItemEditorForm):
 	raw_id_fields = []
 
