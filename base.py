@@ -1,4 +1,4 @@
-import mptt, sys, types
+import sys, types
 
 from django.conf import settings
 from django.db import models
@@ -6,6 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext as _
 
 from feincms.models import Base, Template
+from mptt.models import MPTTModel, MPTTModelBase
 
 from forms import FormWithRawIDFields
 import settings as feincmstools_settings
@@ -108,9 +109,15 @@ class LumpyContent(Base):
                             new_content_type)
 
 
-class HierarchicalLumpyContent(LumpyContent):
+class HierarchicalLumpyContentBase(LumpyContentBase, MPTTModelBase):
+    pass
+    
+       
+class HierarchicalLumpyContent(LumpyContent, MPTTModel):
     """ LumpyContent with hierarchical encoding via MPTT. """
 
+    __metaclass__ = HierarchicalLumpyContentBase
+    
     parent = models.ForeignKey('self', verbose_name=_('Parent'), blank=True,
                                null=True, related_name='children')
     parent.parent_filter = True # Custom FeinCMS list_filter
@@ -118,16 +125,6 @@ class HierarchicalLumpyContent(LumpyContent):
     class Meta:
         abstract = True
         ordering = ['tree_id', 'lft'] # required for FeinCMS TreeEditor
-
-    @classmethod
-    def _register(cls):
-        if not cls._meta.abstract: # concrete subclasses only
-            # auto-register with mptt
-            try:
-                mptt.register(cls)
-            except mptt.AlreadyRegistered:
-                pass
-            super(HierarchicalLumpyContent, cls)._register()
 
     def get_path(self):
         """ Returns list of slugs from tree root to self. """
