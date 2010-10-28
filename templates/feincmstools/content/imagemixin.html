@@ -1,0 +1,46 @@
+{% spaceless %}
+<div class="image {{ content.get_position_display|lower }} {% if content.wrappable and not content.position %}left{% endif %}" style="
+        text-align: center;
+        {% if content.get_position_display|lower == 'centre' %}
+            width:100%;
+            display: block;
+        {%  else  %}
+            display: inline;
+            {% if content.expand %}
+                width:{{ content.expand }};
+            {% else  %}
+                {% if content.width %}
+                    width:{{ content.width }}px;
+                {% endif %}
+            {% endif %}
+        {% endif %}
+   ">
+    
+  {% if content.link_url %}
+    <a href="{{ content.link_url }}">
+  {% else %}
+    {% if content.link_to_original %}
+      <a href="{{ content.get_content.file.url }}">
+    {% endif %}
+  {% endif %}
+    <img src="{{ content.get_content.file.url }}" style="
+    
+            {% if content.expand %}
+                width:100%;
+            {% else  %}
+                {% if content.width %}
+                    width:{{ content.width }}px;
+                {% endif %}
+                {% if content.height %}
+                    height:{{ content.height }}px;
+                {% endif %}
+            {% endif %}
+    
+    " alt="{{ content.get_content.alt_text }}" />
+  {% if content.link_to_original or content.link_url %}
+    </a>
+  {% endif %}
+  {% if content.caption %}<br /><span class="caption">{{ content.caption }}{% if content.get_content.attribution %} <span class="attribution">{{ content.get_content.attribution }}</span>{% endif %}</span>{% endif %}
+</div>
+{% if not content.wrappable %}<br style="clear:both" />{%  endif %}
+{% endspaceless %}

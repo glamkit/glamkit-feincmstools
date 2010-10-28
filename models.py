@@ -1,80 +1,156 @@
 """ IxC extensions to FeinCMS. May perhaps be pushed back to FeinCMS core """
+import os
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext as _
-from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.template.loader import render_to_string
+from django.template.context import RequestContext
 from django.utils.importlib import import_module
-from feincms.models import Base, Region, Template
-from template_utils.templatetags.generic_markup import apply_markup
-from feincmstools.forms import TextileContentAdminForm
-from feincmstools.media.models import OneOffImage, ReusableImage, \
-    ReusableTextileContent
-import feincmstools.settings
-import mptt
-import sys
+from django.core.exceptions import ImproperlyConfigured
 
-#---[ FeinCMS content types ]--------------------------------------------------
+from easy_thumbnails.files import get_thumbnailer
 
-class TextileContent(models.Model):
-    content = models.TextField()
+from base import *
+from forms import TextileContentAdminForm, ImageForm
+import settings as feincmstools_settings
 
-    class Meta:
-        abstract = True
-        verbose_name = _("Text Block")
+__all__ = ['LumpyContent', 'HierarchicalLumpyContent', 'Reusable', 'OneOff', 'TextContent', 'DownloadableContent', 'ImageContent', 'AudioContent', 'VideoContent']
 
-    def render(self, **kwargs):
-        # this should possibly be done via a call to smartembed/textile
-        # methods directly; just directly replacing the templatetag for now
-        return apply_markup(self.content)
+class Reusable(object):
+	__metaclass__ = ReusableBase
 
-    form = TextileContentAdminForm
-    feincms_item_editor_form = TextileContentAdminForm
-    
-    feincms_item_editor_includes = {
-        'head': [ 'feincmstools/textilecontent/init.html' ],
-        }
+	class Meta:
+		abstract = True
+
+class OneOff(object):
+	__metaclass__ = OneOffBase
+
+	class Meta:
+		abstract = True
+
+class Content(object):
+	render_template = None
+
+	def render(self, **kwargs):
+		assert 'request' in kwargs
+		template = getattr(self, 'render_template', getattr(self.get_content(), 'render_template', None) if hasattr(self, 'get_content') else None)
+		if not template:
+			raise NotImplementedError('No template defined for rendering %s content.' % self.__class__.__name__)
+		return render_to_string(template, {'content': self}, context_instance=RequestContext(kwargs['request']))
+
+MAX_ALT_TEXT_LENGTH = 1024
+
+UPLOAD_PATH = getattr(settings, 'UPLOAD_PATH', 'uploads/')
+
+class TextContent(Content, models.Model):
+	content = models.TextField()
+
+	content_field_name = 'text_block'
+	render_template = 'feincmstools/content/text_block.html'
+
+	class Meta:
+		abstract = True
+		verbose_name = _("Text Block")
+
+	form = TextileContentAdminForm
+	feincms_item_editor_form = TextileContentAdminForm
+
+	feincms_item_editor_includes = {
+		'head': [ 'feincmstools/textilecontent/init.html' ],
+		}
+
+class AbstractFile(Content, models.Model):
+	title = models.CharField(max_length=255, blank=True, help_text=_('The filename will be used if not given.'))
+
+	with_extension = False
+
+	class Meta:
+		abstract = True
+
+	def __unicode__(self):
+		return self.get_title()
+
+	def get_title(self):
+		if self.title:
+			return self.title
+		if hasattr(self, 'file'):
+			return os.path.split(self.file.name)[1] if self.with_extension else os.path.splitext(self.file.name)[0]
+		return None
+
+	def save(self, *args, **kwargs):
+		if not self.title:
+			self.title = self.get_title()
+		return super(AbstractFile, self).save(*args, **kwargs)
+
+class DownloadableContent(AbstractFile):
+	file = models.FileField(upload_to=UPLOAD_PATH+'file/%Y/%m/%d/')
+
+	content_field_name = 'file'
+	with_extension = True
+	render_template = 'feincmstools/content/file.html'
+
+	class Meta:
+		abstract = True
+		verbose_name = "Downloadable File"
+		verbose_name_plural = "Downloadable Files"
 
 
-def get_project_path(instance, filename):
-    return "project_assets/%s/%s" % (instance.project.slug, filename)
+# --- Media models ------------------------------------------------------------
 
-class DownloadableContent(models.Model):
-    link_text = models.CharField(max_length=255)
-    downloadable = models.FileField(upload_to=get_project_path) 
-    include_icon = models.BooleanField(default=True)
+class ImageContent(AbstractFile):
+	file = models.ImageField(upload_to=UPLOAD_PATH+'images/%Y/%m/%d/',
+							 height_field='file_height', width_field='file_width',
+							 max_length=255)
+	file_height = models.PositiveIntegerField(editable=False)
+	file_width = models.PositiveIntegerField(editable=False)
+	alt_text = models.CharField('Alternate text', blank=True,
+								max_length=MAX_ALT_TEXT_LENGTH,
+								help_text= 'Description of the image content')
 
-    def get_file_name(self):
-        return (os.path.split(self.downloadable.file.name)[1])
+	form_base = ImageForm
+	content_field_name = 'image'
+	render_template = 'feincmstools/content/image.html'
 
-    def get_file_extension(self):
-        extension = (os.path.split(self.downloadable.file.name)[1]).split('.')[1].lower()
-        if extension in ['ppt','pptx','pptm','pot','potx','potm','pps','ppsx','ppsm','key']:
-            extension = 'ppt'
-        elif extension in ['pdf']:
-            extension = 'pdf'
-        else:
-            extension = 'generic'
-        return extension
+	class Meta:
+		abstract = True
 
-    class Meta:
-        abstract = True
-        verbose_name = "Downloadable File"
-        verbose_name_plural = "Downloadable Files"
+	def get_thumbnail(self, **kwargs):
+		options = dict(size=(100, 100), crop=True)
+		options.update(kwargs)
+		return get_thumbnailer(self.file).get_thumbnail(options)
 
-    # def render(self, **kwargs):
-    #     downloadable = self.downloadable
-    #     template = get_template("lumpypages/downloadable.html")
-    #     c = Context({'downloadable': {'file': self.downloadable, 'link_text': self.link_text, 'include_icon': self.include_icon, 'filename': self.get_file_name(), 'file_extension': self.get_file_extension()}})
-    #     return template.render(c)
+class VideoContent(AbstractFile):
+	file = models.FileField(upload_to=UPLOAD_PATH+'video/%Y/%m/%d/', max_length=255)
+	image = models.ImageField(upload_to=UPLOAD_PATH+'video/%Y/%m/%d/still_image/', max_length=255, blank=True)
+
+	content_field_name = 'video'
+
+	class Meta:
+		abstract = True
+
+	def width(self):
+		return 512
+
+	def height(self):
+		return 384
+
+class AudioContent(AbstractFile):
+	file = models.FileField(upload_to=UPLOAD_PATH+'audio/%Y/%m/%d/', max_length=255)
+
+	content_field_name = 'audio'
+
+	class Meta:
+		abstract = True
+
 
 class ViewContent(models.Model):
     view = models.CharField(max_length=255, blank=False,
-                            choices=feincmstools.settings.CONTENT_VIEW_CHOICES)
-    
+                            choices=feincmstools_settings.CONTENT_VIEW_CHOICES)
+
     class Meta:
         abstract = True
-    
+
     @staticmethod
     def get_view_from_path(path):
         i = path.rfind('.')
@@ -89,10 +165,10 @@ class ViewContent(models.Model):
             view = getattr(mod, view_name)
         except AttributeError:
             raise ImproperlyConfigured(
-                'Module "%s" does not define a "%s" method' % 
+                'Module "%s" does not define a "%s" method' %
                 (module, view_name))
         return view
-    
+
     def render(self, **kwargs):
         try:
             view = self.get_view_from_path(self.view)
@@ -110,90 +186,3 @@ class ViewContent(models.Model):
         # otherwise let's hope it is a raw content string...
         content = getattr(response, 'content', response)
         return content
-        
-        
-#------------------------------------------------------------------------------
-    
-class LumpyMetaclass(models.base.ModelBase):
-    """ Metaclass which simply calls _register() for each new class. """
-    def __new__(cls, name, bases, attrs):
-        new_class = super(LumpyMetaclass, cls).__new__(cls, name, bases, attrs)
-        new_class._register()
-        return new_class
-
-
-class LumpyContent(Base):
-    """ As opposed to FlatPage content -- can have FeinCMS content regions. """
-
-    __metaclass__ = LumpyMetaclass
-
-    class Meta:
-        abstract = True
-    
-    # auto-registered default FeinCMS regions and content types:
-    default_regions = (('main', _('Main')),)
-    default_content_types = (TextileContent, ReusableImage, OneOffImage,
-                             DownloadableContent, ReusableTextileContent)
-
-    if feincmstools.settings.CONTENT_VIEW_CHOICES:
-        default_content_types += (ViewContent,)
-        # (only add if views registered)
-        # Warning: this means syncdb won't add new tables until
-        # a view is registered in settings
-
-    # undocumented trick:
-    feincms_item_editor_includes = {
-        'head': set(['feincmstools/item_editor_head.html' ]),
-        }
-
-    @classmethod
-    def _register(cls):
-        if not cls._meta.abstract: # concrete subclasses only
-            # auto-register FeinCMS regions
-            # cls.register_regions(cls.default_regions)
-            # -- produces odd error, do manually:
-            cls.template = Template('','',cls.default_regions)
-            cls._feincms_all_regions = cls.template.regions
-            # auto-register FeinCMS content types:
-            for content_type in cls.default_content_types:
-                kwargs = {}
-                if type(content_type) in (list, tuple):
-                    content_type, kwargs['regions'] = content_type
-                new_content_type = cls.create_content_type(content_type, **kwargs)
-                # make it available in the module for convenience
-                name = '%s%s' % (cls.__name__, content_type.__name__)
-                if hasattr(sys.modules[cls.__module__], name):
-                    pass # don't overwrite anything though...
-                else:
-                    setattr(sys.modules[cls.__module__], name,
-                            new_content_type)
-                        
-
-                
-class HierarchicalLumpyContent(LumpyContent):
-    """ LumpyContent with hierarchical encoding via MPTT. """
-
-    parent = models.ForeignKey('self', verbose_name=_('Parent'), blank=True,
-                               null=True, related_name='children')
-    parent.parent_filter = True # Custom FeinCMS list_filter
-    
-    class Meta:
-        abstract = True
-        ordering = ['tree_id', 'lft'] # required for FeinCMS TreeEditor
-
-    @classmethod
-    def _register(cls):
-        if not cls._meta.abstract: # concrete subclasses only
-            # auto-register with mptt
-            try:
-                mptt.register(cls)
-            except mptt.AlreadyRegistered:
-                pass
-            super(HierarchicalLumpyContent, cls)._register()
-            
-    def get_path(self):
-        """ Returns list of slugs from tree root to self. """
-        # TODO: cache in database for efficiency?
-        page_list = list(self.get_ancestors()) + [self]
-        return '/'.join([page.slug for page in page_list])
-
