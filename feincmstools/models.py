@@ -120,7 +120,7 @@ class AbstractTitledFile(models.Model):
 			return self.title
 		if hasattr(self, 'file'):
 			return os.path.split(self.file.name)[1] if self.with_extension else os.path.splitext(self.file.name)[0]
-		return None
+		return u'Untitled'
 
 	def save(self, *args, **kwargs):
 		if not self.title:
